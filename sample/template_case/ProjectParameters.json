@@ -1,0 +1,140 @@
+{
+    "problem_data": {
+        "problem_name": "High_Fidelity",
+        "parallel_type": "OpenMP",
+        "start_time": 0.0,
+        "end_time": 0.99,
+        "echo_level": 1
+    },
+    "rve_settings": {
+        "boundary_mp_name": "Microstructure.SKIN",
+        "averaging_mp_name": "Microstructure.RVE",
+        "node_search_tolerance": 1e-06
+    },
+    "solver_settings": {
+        "model_part_name": "Microstructure",
+        "domain_size": 3,
+        "echo_level": 1,
+        "time_stepping": {
+            "time_step": 0.025
+        },
+        "solver_type": "Static",
+        "model_import_settings": {
+            "input_type": "mdpa",
+            "input_filename": "model"
+        },
+        "material_import_settings": {
+            "materials_filename": "materials.json"
+        },
+        "line_search": true,
+        "use_old_stiffness_in_first_iteration": true,
+        "move_mesh_flag": false,
+        "convergence_criterion": "residual_criterion",
+        "residual_relative_tolerance": 0.0025,
+        "residual_absolute_tolerance": 0.0,
+        "max_iteration": 10,
+        "linear_solver_settings": {
+            "solver_type": "amgcl",
+            "krylov_type": "cg",
+            "max_iteration": 500,
+            "scaling": false,
+            "verbosity": 1
+        },
+        "rotation_dofs": false,
+        "compute_reactions": true
+    },
+    "processes": {
+        "my_processes": [
+            {
+                "python_module": "kratos_process_write_elements_homogenized_output",
+                "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
+                "process_name": "WriteElementsHomogenizedOutput",
+                "Parameters": {
+                    "model_part_name": "Microstructure.RVE",
+                    "filename": "homogenized_stress.dat",
+                    "variable_name": "CAUCHY_STRESS_VECTOR"
+                }
+            },
+            {
+                "python_module": "kratos_process_write_snapshots",
+                "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
+                "process_name": "WriteSnapshots",
+                "Parameters": {
+                    "model_part_name": "Microstructure.RVE"
+                }
+            },
+            {
+                "python_module": "kratos_process_write_xdmf",
+                "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
+                "process_name": "WriteXdmf",
+                "Parameters": {
+                    "model_part_name": "Microstructure.RVE"
+                }
+            }
+        ],
+        "list_initial_processes": [],
+        "list_boundary_processes": [
+            {
+                "python_module": "assign_vector_variable_process",
+                "kratos_module": "KratosMultiphysics",
+                "process_name": "AssignVectorVariableProcess",
+                "Parameters": {
+                    "model_part_name": "Microstructure.PINNED",
+                    "variable_name": "DISPLACEMENT",
+                    "constrained": [
+                        true,
+                        true,
+                        true
+                    ],
+                    "value": [
+                        0.0,
+                        0.0,
+                        0.0
+                    ],
+                    "interval": [
+                        0.0,
+                        "End"
+                    ]
+                }
+            }
+        ],
+        "loads_process_list": [
+            {
+                "python_module": "kratos_process_impose_initial_strain",
+                "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
+                "process_name": "ImposeInitialStrainProcess",
+                "Parameters": {
+                    "model_part_name": "Microstructure.RVE",
+                    "variable_name": "INITIAL_STRAIN",
+                    "initial_strain": [
+                        0.47751784156842775,
+                        -0.2670525740438466,
+                        0.3342587112620545,
+                        0.18364137570692007,
+                        -0.21962429168706357,
+                        0.7120194964010759
+                    ],
+                    "lookuptable_time": [
+                        0.0,
+                        1.0
+                    ],
+                    "lookuptable_mult": [
+                        0.0,
+                        0.02
+                    ]
+                }
+            }
+        ]
+    },
+    "output_processes": {},
+    "restart_options": {
+        "SaveRestart": false,
+        "RestartFrequency": 0,
+        "LoadRestart": false,
+        "Restart_Step": 0
+    },
+    "constraints_data": {
+        "incremental_load": false,
+        "incremental_displacement": false
+    }
+}

@@ -1,0 +1,37 @@
+{
+    "properties": [{
+        "model_part_name": "Microstructure.INCLUSION",
+        "properties_id": 1,
+        "Material": {
+            "name": "inclusion",
+            "constitutive_law": {
+                "name": "SmallStrainIsotropicDamageTractionOnly3DLaw"
+            },
+            "Variables": {
+                "YOUNG_MODULUS": 231000.0,
+                "POISSON_RATIO": 0.2,
+                "YIELD_STRESS": 1.0e8,
+                "INFINITY_YIELD_STRESS": 1.1e8,
+                "HARDENING_MODULI_VECTOR": [0.01, 0.01]
+                },
+            "Tables":  {}
+            }
+    }, {
+        "model_part_name": "Microstructure.MATRIX",
+        "properties_id": 2,
+        "Material": {
+            "name": "matrix",
+            "constitutive_law": {
+                "name": "SmallStrainIsotropicDamageTractionOnly3DLaw"
+            },
+            "Variables": {
+                "YOUNG_MODULUS": 4000.0,
+                "POISSON_RATIO": 0.38,
+                "YIELD_STRESS": 60.0,
+                "INFINITY_YIELD_STRESS": 70.0,
+                "HARDENING_MODULI_VECTOR": [0.335, 0.05]
+                },
+            "Tables":  {}
+            }
+    }]
+}
