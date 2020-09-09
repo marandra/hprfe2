@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setuptools.setup(
-    name="hprfe2", # Replace with your own username
+    name="hprfe2", # Replace with your username in test server
     version="0.0.1",
     author="Marcelo RAschi",
     author_email="author@example.com",
