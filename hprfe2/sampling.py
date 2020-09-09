@@ -67,7 +67,7 @@ def create_case_dir(case, strain):
     return
 
 
-def create_launch_script(case):
+def create_run_script(case):
     """
     Writes temporary launch script for each case (run externally)
     """
@@ -79,7 +79,7 @@ export PYTHONPATH={}
 export LD_LIBRARY_PATH={}
 cd {}
 /usr/bin/time -v -o time.dat python MainKratos.py > outMainKratos
-/usr/bin/time -v -o time_quiet.dat python MainKratos.py ProjectParameters_quiet.json > outMainKratos_quiet
+#/usr/bin/time -v -o time_quiet.dat python MainKratos.py ProjectParameters_quiet.json > outMainKratos_quiet
 cd ..
 rm {}
 """.format(
@@ -89,6 +89,65 @@ rm {}
         script_fname,
     )
     (case.parent / script_fname).write_text(script)
+
+
+def create_launchers(path):
+    """Create auxiliary files for running cases"""
+
+    fname = "launcher_slurm.bash"
+    script = """\
+#!/bin/bash
+#SBATCH --job-name=fiber_array
+#SBATCH --ntasks-per-core=1
+#SBATCH --ntasks=1
+#SBATCH --array=00-40
+
+## Settings for "fiber2" case:
+##
+#SBATCH --partition=HM
+#SBATCH --mem-per-cpu=1024
+#SBATCH --time=03:00:00
+
+## Settings for "fiber3" case:
+##
+##SBATCH --partition=HM
+##SBATCH --mem-per-cpu=????
+##SBATCH --time=????
+
+export OMP_NUM_THREADS=1
+printf -v ID "%02d\n" $SLURM_ARRAY_TASK_ID
+TRAJECTORYPATH=$PWD/case_$ID
+cd $TRAJECTORYPATH
+# TODO: update the command (output time.dat and time_quiet.dat)
+time python3 MainKratos.py
+cd ..
+mv slurm-$SLURM_ARRAY_JOB_ID\_$SLURM_ARRAY_TASK_ID.out $TRAJECTORYPATH
+"""
+    (path / fname).write_text(script)
+
+    fname = "launcher_pueue.bash"
+    script = """\
+#!/bin/bash
+
+for SCRIPT in tmp_*.bash
+do
+  pueue add -- bash $SCRIPT
+  sleep 0.05
+done
+"""
+    (path / fname).write_text(script)
+
+    fname = "launcher.bash"
+    script = """\
+#!/bin/bash
+
+(for SCRIPT in tmp_*.bash
+do
+  bash $SCRIPT
+  sleep 0.05
+done
+"""
+    (path / fname).write_text(script)
 
 
 #######################################
@@ -109,5 +168,6 @@ if __name__ == "__main__":
         case_path = co.training_path / co.case_name(i)
         strain_vector = [float(x) for x in line.split()]
         create_case_dir(case_path, strain_vector)
-        create_launch_script(case_path)
+        create_run_script(case_path)
         print(case_path.name, strain_vector)
+    create_launchers(co.training_path)
