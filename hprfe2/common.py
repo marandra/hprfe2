@@ -10,7 +10,7 @@ from docopt import docopt
 # import fire
 
 
-def validate_context(default, user):
+def validate_config(default, user):
     """
     Validates and merges defaults and user configurations.
     Received configeration dictionaries
@@ -45,20 +45,22 @@ class Common:
         config_fname="configuration.json"
 
         try:
-            context_user = json.loads((root_path / config_fname).read_text())[
+            config_user = json.loads((root_path / config_fname).read_text())[
                 "config_data"
             ]
         except FileNotFoundError:
-            #print("WARNING: No such configuration file: '{}'".format(config_fname))
-            context_user = {}
+            #The first time there is no configuration file.
+            config_user = {}
 
-        context_defaults = {
+        defaults_basic = {
             # most frequently set
             "cases_test_dataset": [0],
-            "rve_data_points": [300, 250, 200],
-            "rve_data_points_range_list": [[100, 250, 50], [400, 600, 100]],
+            "rve_data_points": [200, 150,],
+            "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
             "rve_data_points_rom": True,
             "rve_data_modes": [20, 30],
+            }
+        defaults_advanced = {
             #
             "energy_name": "ENERGY_FREE",
             "energy_elastic_modes": 21,
@@ -75,11 +77,11 @@ class Common:
             "reuse_existing_files": True,
             # training files stuff
             "training_path": "sampling",
-            "training_rve_materials_fname": "materials.json",
-            "training_rve_model_fname": "model.mdpa",
+            "training_materials_fname": "materials.json",
+            "training_model_fname": "model.mdpa",
+            "training_strain_fname": "strain_set.dat",
             "case_path_pattern": "case_{}",
             "snapshots_fname": "snapshots.h5",
-            "training_strain_fname": "_training_strain_set.dat",
             # offline files stuff
             "offline_path": "offline_data",
             "bases_fname_pattern": "bases_{}_{}m.npy",
@@ -92,75 +94,76 @@ class Common:
             # multiscale files stuff
             "multiscale_path": "multiscale_1ip",
             # other files stuff
-        }
-        config = validate_context(context_defaults, context_user)
-        self.context = config
-        # TODO:
-        # load defaults
-        # set default user location, overwrite with args
-        # load user config
-        # update default config with user config
+            }
+
+        self.defaults_basic = defaults_basic # keep it for initial dumping
+        self.defaults = {**defaults_basic, **defaults_advanced}
+        self.config = validate_config(self.defaults, config_user)
 
         # file management
         self.root_path = root_path
-        self.training_path = self.root_path / config["training_path"]
-        self.offline_path = self.root_path / config["offline_path"]
-        self.multiscale_path = self.root_path / config["multiscale_path"]
-
-        #self.reuse_existing_files = config["reuse_existing_files"]
-        #self.bases_fname = config["bases_fname_pattern"]
-        #self.local_bases_fname = config["local_bases_fname_pattern"]
-        #self.local_sv_fname = config["local_sv_fname_pattern"]
+        self.training_path = self.root_path / self.config["training_path"]
+        self.offline_path = self.root_path / self.config["offline_path"]
+        self.multiscale_path = self.root_path / self.config["multiscale_path"]
 
         # bases generation
         self.svd_cutoff = {}
 
-        # self.energy_name = config["energy_name"]
-        self.energy_elastic_modes = config["energy_elastic_modes"]
-        self.energy_inelastic_modes = config["energy_inelastic_modes"]
-        self.svd_cutoff[config["energy_name"]] = config["energy_svd_cutoff"]
+        # self.energy_name = self.config["energy_name"]
+        self.energy_elastic_modes = self.config["energy_elastic_modes"]
+        self.energy_inelastic_modes = self.config["energy_inelastic_modes"]
+        self.svd_cutoff[self.config["energy_name"]] = self.config["energy_svd_cutoff"]
 
-        # self.strain_name = config["strain_name"]
-        self.strain_elastic_modes = config["strain_elastic_modes"]
-        self.strain_inelastic_modes = config["strain_inelastic_modes"]
-        self.svd_cutoff[config["strain_name"]] = config["strain_svd_cutoff"]
+        # self.strain_name = self.config["strain_name"]
+        self.strain_elastic_modes = self.config["strain_elastic_modes"]
+        self.strain_inelastic_modes = self.config["strain_inelastic_modes"]
+        self.svd_cutoff[self.config["strain_name"]] = self.config["strain_svd_cutoff"]
 
-        # self.rvalue_name = config["rvalue_name"]
-        self.rvalue_elastic_modes = config["rvalue_elastic_modes"]
-        self.rvalue_inelastic_modes = config["rvalue_inelastic_modes"]
-        self.svd_cutoff[config["rvalue_name"]] = config["rvalue_svd_cutoff"]
+        # self.rvalue_name = self.config["rvalue_name"]
+        self.rvalue_elastic_modes = self.config["rvalue_elastic_modes"]
+        self.rvalue_inelastic_modes = self.config["rvalue_inelastic_modes"]
+        self.svd_cutoff[self.config["rvalue_name"]] = self.config["rvalue_svd_cutoff"]
 
         # points
-        self.ip_subsets = [x for x in config["rve_data_points"]]
-        for r in config["rve_data_points_range_list"]:  # unpack list of "ranges"
+        self.ip_subsets = [x for x in self.config["rve_data_points"]]
+        for r in self.config["rve_data_points_range_list"]:  # unpack list of "ranges"
             for i in range(*r):
                 self.ip_subsets.append(i)
         self.ip_subsets = list(set(self.ip_subsets))
         self.ip_subsets.sort()
-        if config["rve_data_points_rom"]:
+        if self.config["rve_data_points_rom"]:
             self.ip_subsets.append("ROM")
 
-        self.roc_fname_pattern = config["roc_fname_pattern"]
+        self.roc_fname_pattern = self.config["roc_fname_pattern"]
 
         # modes
-        # self.reduced_nr_modes = config["rve_data_modes"]
+        # self.reduced_nr_modes = self.config["rve_data_modes"]
 
         self.materials_fname = self.training_path / Path(
-            config["training_rve_materials_fname"]
+            self.config["training_materials_fname"]
         )
-        self.rve_fname_pattern = config["rve_fname_pattern"]
+        self.rve_fname_pattern = self.config["rve_fname_pattern"]
 
-    def dump_config(self, fname):
+    def dump_config(self, fname, mode="defaults_basic"):
         """
         Writes configuration file.
+        Mode:
+        'defaults_basic': defaults for common parameters (used for initial config files)
+        'defaults': defaults values
+        any other value dumps current config values.
         """
-        Path(fname).write_text(json.dumps({"config_data": self.context}, indent=2))
+        if mode == "defaults_basic":
+            Path(fname).write_text(json.dumps({"config_data": self.defaults_basic}, indent=2))
+        elif mode == "defaults":
+            Path(fname).write_text(json.dumps({"config_data": self.defaults}, indent=2))
+        else:
+            Path(fname).write_text(json.dumps({"config_data": self.config}, indent=2))
 
     def parse_training_strain_set(self):
         """
         Returns list of strain vectors used for trainig, read from file defined in configuration
         """
-        fpath = self.training_path / self.context["training_strain_fname"]
+        fpath = self.training_path / self.config["training_strain_fname"]
         return fpath.read_text().splitlines()
 
     def case_name(self, c_id):
@@ -172,7 +175,7 @@ class Common:
         nr_cases = len(strain_set)
         len_id = len(str(nr_cases - 1))  # size of the case number string
         case_id = "{:0{}d}".format(c_id, len_id)
-        case_name = self.context["case_path_pattern"].format(case_id)
+        case_name = self.config["case_path_pattern"].format(case_id)
         return case_name
 
     def roc_fname(self, points):
@@ -194,14 +197,14 @@ class Common:
         """
         fpath = Path.cwd() / fname  # converts filename to absolute Path
         flag_exists = len([f for f in fpath.parent.glob(fpath.name)])
-        flag_reuse = self.context["reuse_existing_files"]
+        flag_reuse = self.config["reuse_existing_files"]
         return flag_exists and flag_reuse
 
     def get_bases_fname(self, field):
         """
         docstrings here
         """
-        filename = self.context["bases_fname_pattern"].format(field, "*")
+        filename = self.config["bases_fname_pattern"].format(field, "*")
         fpath = self.offline_path / filename
         files = [f for f in fpath.parent.glob(fpath.name)]
         if len(files) == 0:
