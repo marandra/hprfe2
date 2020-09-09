@@ -170,60 +170,60 @@ sample deploy: populates directories"""
     sampling.create_launchers(C.training_path)
 
 
-#def generate():
-#    """\
-#Creates file structure from the computation of bases
-#"""
-#    logger.info("Beginning bases calculation -----------------------")
-#
-#    #
-#    # removing cases from training dataset
-#    # TODO: add TRAINING set and TEST set as memebers of Common
-#    #
-#    training_set = []
-#    for c in bases.training_path.glob(bases.config["case_path_pattern"].format("*")):
-#        c_id = int(c.name.split("_")[1])
-#        if c_id in bases.config["cases_test_dataset"]:
-#            logger.info("Removing case {} from training dataset".format(c.name))
-#            continue
-#        training_set.append(c)
-#
-#    #
-#    # generate missing local bases
-#    #
-#    bases.generate_missing_local_bases(bases.config["energy_name"],)
-#    bases.generate_missing_local_bases(bases.config["strain_name"],)
-#    bases.generate_missing_local_bases(bases.config["rvalue_name"],)
-#
-#    #
-#    # compute bases
-#    #
-#    bases.create_bases(
-#        bases.config["energy_name"],
-#        bases.config["energy_elastic_modes"],
-#        bases.config["energy_inelastic_modes"],
-#        training_set,
-#        bases.config["bases_fname_pattern"],
-#        bases.svd_cutoff[bases.config["energy_name"]],
-#    )
-#    bases.create_bases(
-#        bases.config["strain_name"],
-#        bases.config["strain_elastic_modes"],
-#        bases.config["strain_inelastic_modes"],
-#        training_set,
-#        bases.config["bases_fname_pattern"],
-#        bases.svd_cutoff[bases.config["strain_name"]],
-#    )
-#    bases.create_bases(
-#        bases.config["rvalue_name"],
-#        bases.config["rvalue_elastic_modes"],
-#        bases.config["rvalue_inelastic_modes"],
-#        training_set,
-#        bases.config["bases_fname_pattern"],
-#        bases.svd_cutoff[bases.config["rvalue_name"]],
-#    )
-#
-#    logger.info("Finished -----------------------------------------")
+def generate():
+    """\
+Creates file structure from the computation of bases
+"""
+    logger.info("Beginning bases calculation -----------------------")
+
+    #
+    # removing cases from training dataset
+    # TODO: add TRAINING set and TEST set as memebers of Common
+    #
+    training_set = []
+    for c in bases.training_path.glob(bases.config["case_path_pattern"].format("*")):
+        c_id = int(c.name.split("_")[1])
+        if c_id in bases.config["cases_test_dataset"]:
+            logger.info("Removing case {} from training dataset".format(c.name))
+            continue
+        training_set.append(c)
+
+    #
+    # generate missing local bases
+    #
+    bases.generate_missing_local_bases(bases.config["energy_name"],)
+    bases.generate_missing_local_bases(bases.config["strain_name"],)
+    bases.generate_missing_local_bases(bases.config["rvalue_name"],)
+
+    #
+    # compute bases
+    #
+    bases.create_bases(
+        bases.config["energy_name"],
+        bases.config["energy_elastic_modes"],
+        bases.config["energy_inelastic_modes"],
+        training_set,
+        bases.config["bases_fname_pattern"],
+        bases.svd_cutoff[bases.config["energy_name"]],
+    )
+    bases.create_bases(
+        bases.config["strain_name"],
+        bases.config["strain_elastic_modes"],
+        bases.config["strain_inelastic_modes"],
+        training_set,
+        bases.config["bases_fname_pattern"],
+        bases.svd_cutoff[bases.config["strain_name"]],
+    )
+    bases.create_bases(
+        bases.config["rvalue_name"],
+        bases.config["rvalue_elastic_modes"],
+        bases.config["rvalue_inelastic_modes"],
+        training_set,
+        bases.config["bases_fname_pattern"],
+        bases.svd_cutoff[bases.config["rvalue_name"]],
+    )
+
+    logger.info("Finished -----------------------------------------")
 
 
 #####################################################################
