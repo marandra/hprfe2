@@ -1,35 +1,63 @@
+#!/usr/bin/env python3
 """
-Usage:
-    hpr.py [-h]
-    hpr.py [-r PATH] init help
-    hpr.py [-r PATH] init <template> [-n]
-    hpr.py [-r PATH] sample [help|create|deploy]
-    hpr.py [-r PATH] bases [help|generate|pack]
+hprfe2 v0.9
+Marcelo Raschi <marcelo.raschi@gmail.com>
+Utilities for HPRFE2 modal bases datasets
 
-Options:
--h --help             Show this
--r PATH --root=PATH   Specify the root path of the project, where the
-                      configuration file must be located [default: .]
--n --no-quiet-params  Do not include no-output template case files used for
-                      time measurements.
+USAGE:
+    hprfe2 [-h]
+    hprfe2 [-r PATH] init help
+    hprfe2 [-r PATH] init <template> [-n]
+    hprfe2 [-r PATH] deploy [help]
+    hprfe2 [-r PATH] generate [help]
 
-Commands:
-    init              Create configuration file, directories, and copy template files.
-        help          Print detailed information of this command
-    sample            Sampling stage actions
-        help          Print detailed information of this command
-        create        Create directory structure
-        deploy        Deploy template cases in directories
-    bases             Basis creation stage actions
-        help          Print detailed information of this command
-        generate      Generate bases
-        pack          Create dataset files
+FLAGS:
+    -h --help             Prints help information
+    -v --version          Prints version information
+    -n --no-quiet-params  Do not include no-output template case files used for
+                          time measurements.
+
+OPTIONS:
+    -r PATH --root=PATH   Specify the root path of the project, where the
+                          configuration file must be located [default: .]
+    
+COMMANDS:
+    help      Print detailed information of this command
+    init      Create configuration file, directories, and copy template files.
+    deploy    Deploy template cases for sampling
+    generate  Generate bases
+    pack      Create dataset files
 """
 
+# TODO
+# change file modes 0644
+# change launchers file mode 755 and add env
+# change dirs modes (755?)
+# change prints to logger
+# imporve commands' help
+# update hardcoded filename here
+# dump config with only basic options
+
+import logging
 from pathlib import Path
 from docopt import docopt
-from common import Common
+import common
 import sampling
+import bases
+
+
+logging.basicConfig(
+    format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
+)
+fh = logging.FileHandler("hprfe2.log")
+# fh.setLevel(logging.DEBUG)
+fh.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+# ch = logging.StreamHandler()
+# ch.setLevel(logging.DEBUG)
+# ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+logger = logging.getLogger(__name__)
+logger.addHandler(fh)
+# logger.addHandler(ch)
 
 
 def _process_arguments(args):
@@ -44,8 +72,8 @@ def _process_arguments(args):
     """
 
     # Debug:
-    #from pprint import pprint
-    #pprint(args)
+    # from pprint import pprint
+    # pprint(args)
 
     keyword = ""
 
@@ -55,31 +83,24 @@ def _process_arguments(args):
         else:
             keyword = "INIT"
 
-    if args["sample"]:
+    if args["deploy"]:
         if args["help"]:
-            keyword = "SAMPLE_HELP"
-        elif args["create"]:
-            keyword = "SAMPLE_CREATE"
-        elif args["deploy"]:
-            keyword = "SAMPLE_DEPLOY"
+            keyword = "DEPLOY_HELP"
         else:
-            keyword = "SAMPLE"
+            keyword = "DEPLOY"
 
-    if args["bases"]:
+    if args["generate"]:
         if args["help"]:
-            keyword = "BASES_HELP"
-        elif args["generate"]:
-            keyword = "BASES_GENERATE"
-        elif args["pack"]:
-            keyword = "BASES_PACK"
+            keyword = "GENERATE_HELP"
         else:
-            keyword = "BASES"
+            keyword = "GENERATE"
 
     return keyword
 
 
-def init_func(template_path, params_quiet_flag):
-    """Writes and creates initial files and directory structure at root path.
+def init(template_path, params_quiet_flag):
+    """\
+Writes and creates initial files and directory structure at root path.
 Root path can be passed when invoking the command, if missing the current
 directory (".") is assumed.
 
@@ -97,9 +118,7 @@ directory (".") is assumed.
         print("File {} exists. Skipping.".format(conf_file))
     else:
         C.dump_config(conf_file)
-        print(
-            "Written configuration file {}.".format(conf_file)
-        )
+        print("Written configuration file {}.".format(conf_file))
 
     # Check that Kratos case files exist
     paths = [
@@ -107,7 +126,7 @@ directory (".") is assumed.
         template_path / "model.mdpa",
         template_path / "materials.json",
         template_path / "ProjectParameters.json",
-        template_path / C.context["training_strain_fname"],
+        template_path / C.config["training_strain_fname"],
     ]
     if params_quiet_flag:
         paths.append(template_path / "ProjectParameters_quiet.json",)
@@ -133,17 +152,78 @@ directory (".") is assumed.
     return
 
 
-def sample_create():
-    """Creates file structure for sampling.
-Requires a file with strain tensors (voigt notation) for each trajectory."""
+def deploy():
+    """\
+Creates file structure for sampling and directory structure for training.
+Requires a file with strain tensors (voigt notation) for each trajectory.
+sample create: creates directory structure
+sample deploy: populates directories"""
+
     strain_set = C.parse_training_strain_set()
 
     for i, line in enumerate(strain_set):
         case_path = C.training_path / C.case_name(i)
         strain_vector = [float(x) for x in line.split()]
         sampling.create_case_dir(case_path, strain_vector)
-        sampling.create_launch_script(case_path)
+        sampling.create_run_script(case_path)
         print(case_path.name, strain_vector)
+    sampling.create_launchers(C.training_path)
+
+
+#def generate():
+#    """\
+#Creates file structure from the computation of bases
+#"""
+#    logger.info("Beginning bases calculation -----------------------")
+#
+#    #
+#    # removing cases from training dataset
+#    # TODO: add TRAINING set and TEST set as memebers of Common
+#    #
+#    training_set = []
+#    for c in bases.training_path.glob(bases.config["case_path_pattern"].format("*")):
+#        c_id = int(c.name.split("_")[1])
+#        if c_id in bases.config["cases_test_dataset"]:
+#            logger.info("Removing case {} from training dataset".format(c.name))
+#            continue
+#        training_set.append(c)
+#
+#    #
+#    # generate missing local bases
+#    #
+#    bases.generate_missing_local_bases(bases.config["energy_name"],)
+#    bases.generate_missing_local_bases(bases.config["strain_name"],)
+#    bases.generate_missing_local_bases(bases.config["rvalue_name"],)
+#
+#    #
+#    # compute bases
+#    #
+#    bases.create_bases(
+#        bases.config["energy_name"],
+#        bases.config["energy_elastic_modes"],
+#        bases.config["energy_inelastic_modes"],
+#        training_set,
+#        bases.config["bases_fname_pattern"],
+#        bases.svd_cutoff[bases.config["energy_name"]],
+#    )
+#    bases.create_bases(
+#        bases.config["strain_name"],
+#        bases.config["strain_elastic_modes"],
+#        bases.config["strain_inelastic_modes"],
+#        training_set,
+#        bases.config["bases_fname_pattern"],
+#        bases.svd_cutoff[bases.config["strain_name"]],
+#    )
+#    bases.create_bases(
+#        bases.config["rvalue_name"],
+#        bases.config["rvalue_elastic_modes"],
+#        bases.config["rvalue_inelastic_modes"],
+#        training_set,
+#        bases.config["bases_fname_pattern"],
+#        bases.svd_cutoff[bases.config["rvalue_name"]],
+#    )
+#
+#    logger.info("Finished -----------------------------------------")
 
 
 #####################################################################
@@ -155,28 +235,20 @@ if __name__ == "__main__":
     ARGS = docopt(__doc__, version="v0.9")
     KEYWORD = _process_arguments(ARGS)
 
-    C = Common(root_path=Path(ARGS["--root"]))
+    C = common.Common(root_path=Path(ARGS["--root"]))
 
     if KEYWORD == "INIT_HELP":
-        print(init_func.__doc__)
+        print(init.__doc__)
     elif KEYWORD == "INIT":
-        init_func(Path(ARGS["<template>"]), not ARGS["--no-quiet-params"])
-    elif KEYWORD == "SAMPLE_HELP":
-        print(sample_create.__doc__)
-    elif KEYWORD == "SAMPLE_CREATE":
-        sample_create()
-    elif KEYWORD == "SAMPLE_DEPLOY":
-        sample_create()
-    elif KEYWORD == "SAMPLE":
-        print(3)
-    elif KEYWORD == "BASES_HELP":
-        print(3)
-    elif KEYWORD == "BASES_GENERATE":
-        print(3)
-    elif KEYWORD == "BASES_PACK":
-        print(3)
-    elif KEYWORD == "BASES":
-        print(3)
+        init(Path(ARGS["<template>"]), not ARGS["--no-quiet-params"])
+    elif KEYWORD == "DEPLOY_HELP":
+        print(deploy.__doc__)
+    elif KEYWORD == "DEPLOY":
+        deploy()
+    elif KEYWORD == "GENERATE_HELP":
+        generate()
+    elif KEYWORD == "GENERATE":
+        print(generate.__doc__)
     else:
         print("Need a command. Try with --help.")
         exit()
