@@ -83,7 +83,7 @@ class Common:
             "case_path_pattern": "case_{}",
             "snapshots_fname": "snapshots.h5",
             # offline files stuff
-            "offline_path": "offline_data",
+            "bases_path": "bases",
             "bases_fname_pattern": "bases_{}_{}m.npy",
             "local_bases_fname_pattern": "bases_inelastic_local_{}.npy",
             "local_sv_fname_pattern": "sv_inelastic_local_{}.dat",
@@ -103,7 +103,7 @@ class Common:
         # file management
         self.root_path = root_path
         self.training_path = self.root_path / self.config["training_path"]
-        self.offline_path = self.root_path / self.config["offline_path"]
+        self.bases_path = self.root_path / self.config["bases_path"]
         self.multiscale_path = self.root_path / self.config["multiscale_path"]
 
         # bases generation
@@ -205,7 +205,7 @@ class Common:
         docstrings here
         """
         filename = self.config["bases_fname_pattern"].format(field, "*")
-        fpath = self.offline_path / filename
+        fpath = self.bases_path / filename
         files = [f for f in fpath.parent.glob(fpath.name)]
         if len(files) == 0:
             return None
