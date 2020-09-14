@@ -82,12 +82,14 @@ class Common:
             "training_strain_fname": "strain_set.dat",
             "case_path_pattern": "case_{}",
             "snapshots_fname": "snapshots.h5",
-            # offline files stuff
+            # bases and roc sets files stuff
             "bases_path": "bases",
             "bases_fname_pattern": "bases_{}_{}m.npy",
             "local_bases_fname_pattern": "bases_inelastic_local_{}.npy",
             "local_sv_fname_pattern": "sv_inelastic_local_{}.dat",
             "roc_fname_pattern": "roc_{}ip",
+            # base + roc datasets stuff
+            "datasets_path": "datasets",
             "rve_fname_pattern": "rve_{}m_{}ip.json",
             "correl_matrix_strain_pattern": "correlation_strain_{}.npy",
             "correl_matrix_damage_pattern": "correlation_r_value_{}.npy",
@@ -104,6 +106,7 @@ class Common:
         self.root_path = root_path
         self.training_path = self.root_path / self.config["training_path"]
         self.bases_path = self.root_path / self.config["bases_path"]
+        self.datasets_path = self.root_path / self.config["datasets_path"]
         self.multiscale_path = self.root_path / self.config["multiscale_path"]
 
         # bases generation

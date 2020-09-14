@@ -6,10 +6,10 @@ Utilities for HPRFE2 modal bases datasets
 
 USAGE:
     hprfe2 [-h]
-    hprfe2 [-r PATH] init help
-    hprfe2 [-r PATH] init <template> [-n]
+    hprfe2 [-r PATH] init [help | <template> [-n]]
     hprfe2 [-r PATH] deploy [help]
     hprfe2 [-r PATH] generate [help]
+    hprfe2 [-r PATH] pack [help]
 
 FLAGS:
     -h --help             Prints help information
@@ -22,13 +22,12 @@ OPTIONS:
                           configuration file must be located [default: .]
 
 COMMANDS:
-    help      Print detailed information of this command
-    init      Create configuration file, directories, and copy template files.
+    help      Print detailed information of a command
+    init      Create configuration file, directories, and copy template files
     deploy    Deploy template cases for sampling
-    generate  Generate bases
+    generate  Generate bases and IP sets
     pack      Create dataset files
 """
-
 # TODO
 # change file modes 0644
 # change launchers file mode 755 and add env
@@ -39,6 +38,7 @@ COMMANDS:
 # dump config with only basic options
 # fix logger
 # replace print by logger
+# fix logger messages (make them consistent)
 
 import logging
 from pathlib import Path
@@ -46,6 +46,8 @@ from docopt import docopt
 import common
 import sampling
 import bases
+import roc
+import pack
 
 
 logging.basicConfig(
@@ -97,6 +99,12 @@ def _process_arguments(args):
         else:
             keyword = "GENERATE"
 
+    if args["pack"]:
+        if args["help"]:
+            keyword = "PACK_HELP"
+        else:
+            keyword = "PACK"
+
     return keyword
 
 
@@ -113,6 +121,14 @@ directory (".") is assumed.
 - Creates sampling directory (location passed as argument)
 - Copies template files to sampling directory
 """
+
+    # Create basic dir structure
+    for p in [C.training_path, C.bases_path, C.datasets_path]:
+        if not p.exists():
+            p.mkdir()
+            print("Created directory {}".format(p))
+        else:
+            print("Directory {} exists. Skipping.".format(p))
 
     # Write initial configuration file
     conf_file = C.root_path / "configuration.json"
@@ -138,25 +154,11 @@ directory (".") is assumed.
             print("Missing template file {}. Aborting.".format(p))
             exit()
 
-    # Create sampling dir and copy Kratos case files from template directory
-    if not C.training_path.exists():
-        C.training_path.mkdir()
-        print("Created sampling directory {}".format(C.training_path))
-    else:
-        print("Directory {} exists. Skipping.".format(C.training_path))
-
     # Copy template files to sampling directory
     for src in paths:
         dest = C.training_path / src.name
         dest.write_text(src.read_text())
     print("Template files copied to sampling directory")
-
-    # Create bases dir
-    if not C.bases_path.exists():
-        C.bases_path.mkdir()
-        print("Created bases directory {}".format(C.bases_path))
-    else:
-        print("Directory {} exists. Skipping.".format(C.bases_path))
 
     return
 
@@ -231,8 +233,12 @@ Creates file structure from the computation of bases
         B.config["bases_fname_pattern"],
         B.svd_cutoff[B.config["rvalue_name"]],
     )
-
     logger.info("Finished -----------------------------------------")
+
+    # Compute ROC ip sets
+    roc.write_ip_sets(C)
+
+
 
 
 #####################################################################
@@ -256,9 +262,14 @@ if __name__ == "__main__":
     elif KEYWORD == "DEPLOY":
         deploy()
     elif KEYWORD == "GENERATE_HELP":
-        print(generate.__doc__)
+        print(bases.__doc__)
+        print(roc.__doc__)
     elif KEYWORD == "GENERATE":
         generate()
+    elif KEYWORD == "PACK_HELP":
+        print(pack.__doc__)
+    elif KEYWORD == "PACK":
+        pack.write_datasets(C)
     else:
         print("Need a command. Try with --help.")
         exit()
