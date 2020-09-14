@@ -225,7 +225,7 @@ class Bases(Common):
         logger.info("      {}".format(S[nr_modes : nr_modes + 4]))
         logger.info("    - nr and size of modes: {}, {}".format(U.shape[1], U.shape[0]))
         logger.info("")
-        numpy.savetxt("singular_values.dat", S)
+        numpy.savetxt(self.bases_path / "singular_values.dat", S)
         return U
 
     def create_bases(
@@ -237,7 +237,7 @@ class Bases(Common):
         bases_fname,
         cutoff_tol,
     ):
-        if self.skip_calculation(bases_fname.format(field_name, "*")):
+        if self.skip_calculation(self.bases_path / bases_fname.format(field_name, "*")):
             logger.info(
                 "File {} exists. Skipping calculation".format(
                     bases_fname.format(field_name, "*")
@@ -253,7 +253,7 @@ class Bases(Common):
             X = self.read_snapshots(cases_path, "ELASTIC", field_name)
             Ue = self.compute_svd(X, nr_elastic_modes)
             os.rename(
-                "singular_values.dat", "sv_{}_elastic.dat".format(field_name),
+                self.bases_path / "singular_values.dat", self.bases_path / "sv_{}_elastic.dat".format(field_name),
             )
 
             logger.info("- Processing INELASTIC modes")
@@ -261,7 +261,7 @@ class Bases(Common):
             X = self.remove_elastic_modes(X, Ue)
             Ui = self.compute_svd(X, nr_inelastic_modes)
             os.rename(
-                "singular_values.dat", "sv_{}_inelastic.dat".format(field_name),
+                self.bases_path / "singular_values.dat", self.bases_path / "sv_{}_inelastic.dat".format(field_name),
             )
 
             U = numpy.hstack([Ue, Ui])
@@ -275,10 +275,10 @@ class Bases(Common):
             X = self.read_snapshots(cases_path, "INELASTIC", field_name)
             U = self.compute_svd(X, nr_inelastic_modes)
             os.rename(
-                "singular_values.dat", "sv_{}.dat".format(field_name),
+                self.bases_path / "singular_values.dat", self.bases_path / "sv_{}.dat".format(field_name),
             )
 
-        numpy.save(bases_fname.format(field_name, numpy.shape(U)[1]), U)
+        numpy.save(self.bases_path / bases_fname.format(field_name, numpy.shape(U)[1]), U)
         logger.info("  Elapsed time: {:.1f}s".format(time.time() - t0))
         logger.info("")
 
