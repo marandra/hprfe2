@@ -10,7 +10,7 @@ from pathlib import Path
 import numpy
 import h5py
 import sklearn.decomposition
-from hprfe2.common import Common
+from common import Common
 
 
 logging.basicConfig(

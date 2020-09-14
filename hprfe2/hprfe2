@@ -20,7 +20,7 @@ FLAGS:
 OPTIONS:
     -r PATH --root=PATH   Specify the root path of the project, where the
                           configuration file must be located [default: .]
-    
+
 COMMANDS:
     help      Print detailed information of this command
     init      Create configuration file, directories, and copy template files.
@@ -181,9 +181,9 @@ Creates file structure from the computation of bases
     # TODO: add TRAINING set and TEST set as memebers of Common
     #
     training_set = []
-    for c in bases.training_path.glob(bases.config["case_path_pattern"].format("*")):
+    for c in B.training_path.glob(B.config["case_path_pattern"].format("*")):
         c_id = int(c.name.split("_")[1])
-        if c_id in bases.config["cases_test_dataset"]:
+        if c_id in B.config["cases_test_dataset"]:
             logger.info("Removing case {} from training dataset".format(c.name))
             continue
         training_set.append(c)
@@ -191,36 +191,36 @@ Creates file structure from the computation of bases
     #
     # generate missing local bases
     #
-    bases.generate_missing_local_bases(bases.config["energy_name"],)
-    bases.generate_missing_local_bases(bases.config["strain_name"],)
-    bases.generate_missing_local_bases(bases.config["rvalue_name"],)
+    B.generate_missing_local_bases(B.config["energy_name"],)
+    B.generate_missing_local_bases(B.config["strain_name"],)
+    B.generate_missing_local_bases(B.config["rvalue_name"],)
 
     #
     # compute bases
     #
-    bases.create_bases(
-        bases.config["energy_name"],
-        bases.config["energy_elastic_modes"],
-        bases.config["energy_inelastic_modes"],
+    B.create_bases(
+        B.config["energy_name"],
+        B.config["energy_elastic_modes"],
+        B.config["energy_inelastic_modes"],
         training_set,
-        bases.config["bases_fname_pattern"],
-        bases.svd_cutoff[bases.config["energy_name"]],
+        B.config["bases_fname_pattern"],
+        B.svd_cutoff[B.config["energy_name"]],
     )
-    bases.create_bases(
-        bases.config["strain_name"],
-        bases.config["strain_elastic_modes"],
-        bases.config["strain_inelastic_modes"],
+    B.create_bases(
+        B.config["strain_name"],
+        B.config["strain_elastic_modes"],
+        B.config["strain_inelastic_modes"],
         training_set,
-        bases.config["bases_fname_pattern"],
-        bases.svd_cutoff[bases.config["strain_name"]],
+        B.config["bases_fname_pattern"],
+        B.svd_cutoff[B.config["strain_name"]],
     )
-    bases.create_bases(
-        bases.config["rvalue_name"],
-        bases.config["rvalue_elastic_modes"],
-        bases.config["rvalue_inelastic_modes"],
+    B.create_bases(
+        B.config["rvalue_name"],
+        B.config["rvalue_elastic_modes"],
+        B.config["rvalue_inelastic_modes"],
         training_set,
-        bases.config["bases_fname_pattern"],
-        bases.svd_cutoff[bases.config["rvalue_name"]],
+        B.config["bases_fname_pattern"],
+        B.svd_cutoff[B.config["rvalue_name"]],
     )
 
     logger.info("Finished -----------------------------------------")
@@ -236,6 +236,7 @@ if __name__ == "__main__":
     KEYWORD = _process_arguments(ARGS)
 
     C = common.Common(root_path=Path(ARGS["--root"]))
+    B = bases.Bases(root_path=Path(ARGS["--root"]))
 
     if KEYWORD == "INIT_HELP":
         print(init.__doc__)
@@ -246,9 +247,9 @@ if __name__ == "__main__":
     elif KEYWORD == "DEPLOY":
         deploy()
     elif KEYWORD == "GENERATE_HELP":
-        generate()
-    elif KEYWORD == "GENERATE":
         print(generate.__doc__)
+    elif KEYWORD == "GENERATE":
+        generate()
     else:
         print("Need a command. Try with --help.")
         exit()
