@@ -37,6 +37,8 @@ COMMANDS:
 # imporve commands' help
 # update hardcoded filename here
 # dump config with only basic options
+# fix logger
+# replace print by logger
 
 import logging
 from pathlib import Path
@@ -148,6 +150,13 @@ directory (".") is assumed.
         dest = C.training_path / src.name
         dest.write_text(src.read_text())
     print("Template files copied to sampling directory")
+
+    # Create bases dir
+    if not C.bases_path.exists():
+        C.bases_path.mkdir()
+        print("Created bases directory {}".format(C.bases_path))
+    else:
+        print("Directory {} exists. Skipping.".format(C.bases_path))
 
     return
 
