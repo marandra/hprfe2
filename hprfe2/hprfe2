@@ -48,6 +48,7 @@ import sampling
 import bases
 import roc
 import pack
+import reconstruction
 
 
 logging.basicConfig(
@@ -238,7 +239,8 @@ Creates file structure from the computation of bases
     # Compute ROC ip sets
     roc.write_ip_sets(C)
 
-
+    # Computes data for displacement reconstruction
+    reconstruction.reconstruct_displacement(C)
 
 
 #####################################################################
@@ -264,6 +266,7 @@ if __name__ == "__main__":
     elif KEYWORD == "GENERATE_HELP":
         print(bases.__doc__)
         print(roc.__doc__)
+        print(reconstruction.__doc__)
     elif KEYWORD == "GENERATE":
         generate()
     elif KEYWORD == "PACK_HELP":
