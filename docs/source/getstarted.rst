@@ -11,6 +11,10 @@ Let's get started.
 Sampling
 --------
 
+.. todo:: 
+   Repeat all tutorial from a nested directory
+
+
 Create root directory for our material::
 
   >>> mkdir COMPOSITE_01
@@ -23,7 +27,7 @@ bundled with the installation files in the ``sample`` directory of this project:
 
   >>> pwd
   COMPOSITE_01
-  >>> python hpr.py init .../hprfe2_project/sample/template_case
+  >>> hprfe2 init .../hprfe2_project/sample/template_case
   Written configuration file configuration.json.
   Created sampling directory sampling
   Template files copied to sampling directory
@@ -37,7 +41,7 @@ The script also created a ``sampling`` directory and populate it with our
 Kratos case, which includes ``MainKratos.py``, ``model.mdpa`` (unit cell
 discretization), ``materials.json`` (COMPOSITE_01 constituve model and
 material parameters), ``ProjectParameters.json`` (case configuration
-for Kratos), and ``_training_strain_set.dat`` with the list of strains for the
+for Kratos), and ``strain_set.dat`` with the list of strains for the
 sampling process.
 
 The configuration file contains the at least following needed parameters:
@@ -59,7 +63,7 @@ The configuration file contains the at least following needed parameters:
 
 In the following step, we generate the sampling directories::
 
-  >>> python hpr.py deploy
+  >>> hprfe2 deploy
   case_0 [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   case_1 [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
   case_2 [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
@@ -98,7 +102,7 @@ At this point, we should have the following file structure (here showing only ``
       ├── materials.json
       ├── model.mdpa
       ├── ProjectParameters.json
-      └── _training_strain_set.dat
+      └── strain_set.dat
 
 (only the files relevant to this turorial are shown, there are more auxiliar
 files in this directories for more complex use.)
