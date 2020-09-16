@@ -28,8 +28,7 @@ logger.addHandler(fh)
 
 
 class Bases(Common):
-    """Functions for snapshots I/O and bases generation.
-    """
+    """Functions for snapshots I/O and bases generation."""
 
     def __init__(self, **kargv):
         super().__init__(**kargv)
@@ -131,7 +130,9 @@ class Bases(Common):
         rows = 0
         cols = 0
         for path in paths:
-            if not (path / b_fname).exists():  # in case there are no inelastic snapshots, local bases are not generated and no local bases file present
+            if not (
+                path / b_fname
+            ).exists():  # in case there are no inelastic snapshots, local bases are not generated and no local bases file present
                 continue
             a = numpy.load(str(path / b_fname), mmap_mode="r")
             if numpy.shape(a)[1] == 0:  # missing dataset
@@ -149,7 +150,9 @@ class Bases(Common):
         counter = 1
         column = 0
         for path in paths:
-            if not (path / b_fname).exists():  # in case there are no inelastic snapshots, local bases are not generated and no local bases file present
+            if not (
+                path / b_fname
+            ).exists():  # in case there are no inelastic snapshots, local bases are not generated and no local bases file present
                 continue
             a = numpy.load(str(path / b_fname), mmap_mode="r")
             if numpy.shape(a)[1] == 0:  # missing dataset
@@ -253,7 +256,8 @@ class Bases(Common):
             X = self.read_snapshots(cases_path, "ELASTIC", field_name)
             Ue = self.compute_svd(X, nr_elastic_modes)
             os.rename(
-                self.bases_path / "singular_values.dat", self.bases_path / "sv_{}_elastic.dat".format(field_name),
+                self.bases_path / "singular_values.dat",
+                self.bases_path / "sv_{}_elastic.dat".format(field_name),
             )
 
             logger.info("- Processing INELASTIC modes")
@@ -261,7 +265,8 @@ class Bases(Common):
             X = self.remove_elastic_modes(X, Ue)
             Ui = self.compute_svd(X, nr_inelastic_modes)
             os.rename(
-                self.bases_path / "singular_values.dat", self.bases_path / "sv_{}_inelastic.dat".format(field_name),
+                self.bases_path / "singular_values.dat",
+                self.bases_path / "sv_{}_inelastic.dat".format(field_name),
             )
 
             U = numpy.hstack([Ue, Ui])
@@ -275,10 +280,13 @@ class Bases(Common):
             X = self.read_snapshots(cases_path, "INELASTIC", field_name)
             U = self.compute_svd(X, nr_inelastic_modes)
             os.rename(
-                self.bases_path / "singular_values.dat", self.bases_path / "sv_{}.dat".format(field_name),
+                self.bases_path / "singular_values.dat",
+                self.bases_path / "sv_{}.dat".format(field_name),
             )
 
-        numpy.save(self.bases_path / bases_fname.format(field_name, numpy.shape(U)[1]), U)
+        numpy.save(
+            self.bases_path / bases_fname.format(field_name, numpy.shape(U)[1]), U
+        )
         logger.info("  Elapsed time: {:.1f}s".format(time.time() - t0))
         logger.info("")
 
@@ -362,9 +370,15 @@ if __name__ == "__main__":
     #
     # generate missing local bases
     #
-    bases.generate_missing_local_bases(bases.config["energy_name"],)
-    bases.generate_missing_local_bases(bases.config["strain_name"],)
-    bases.generate_missing_local_bases(bases.config["rvalue_name"],)
+    bases.generate_missing_local_bases(
+        bases.config["energy_name"],
+    )
+    bases.generate_missing_local_bases(
+        bases.config["strain_name"],
+    )
+    bases.generate_missing_local_bases(
+        bases.config["rvalue_name"],
+    )
 
     #
     # compute bases

@@ -42,24 +42,27 @@ class Common:
     """
 
     def __init__(self, root_path):
-        config_fname="configuration.json"
+        config_fname = "configuration.json"
 
         try:
             config_user = json.loads((root_path / config_fname).read_text())[
                 "config_data"
             ]
         except FileNotFoundError:
-            #The first time there is no configuration file.
+            # The first time there is no configuration file.
             config_user = {}
 
         defaults_basic = {
             # most frequently set
             "cases_test_dataset": [0],
-            "rve_data_points": [200, 150,],
+            "rve_data_points": [
+                200,
+                150,
+            ],
             "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
             "rve_data_points_rom": True,
             "rve_data_modes": [20, 30],
-            }
+        }
         defaults_advanced = {
             #
             "energy_name": "ENERGY_FREE",
@@ -96,9 +99,9 @@ class Common:
             # multiscale files stuff
             "multiscale_path": "multiscale_1ip",
             # other files stuff
-            }
+        }
 
-        self.defaults_basic = defaults_basic # keep it for initial dumping
+        self.defaults_basic = defaults_basic  # keep it for initial dumping
         self.defaults = {**defaults_basic, **defaults_advanced}
         self.config = validate_config(self.defaults, config_user)
 
@@ -157,7 +160,9 @@ class Common:
         any other value dumps current config values.
         """
         if mode == "defaults_basic":
-            Path(fname).write_text(json.dumps({"config_data": self.defaults_basic}, indent=2))
+            Path(fname).write_text(
+                json.dumps({"config_data": self.defaults_basic}, indent=2)
+            )
         elif mode == "defaults":
             Path(fname).write_text(json.dumps({"config_data": self.defaults}, indent=2))
         else:
@@ -195,7 +200,7 @@ class Common:
         return self.rve_fname_pattern.format(modes, points)
 
     def skip_calculation(self, fname):
-        """ 
+        """
         Generates a list of files following filename pattern.
         Length of list is used as flag (False if empty, True otherwise)
         """

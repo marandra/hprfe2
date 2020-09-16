@@ -115,6 +115,7 @@ def _process_arguments(args):
 
     return keyword
 
+
 def validate(C):
     """Run several checks before running."""
 
@@ -164,7 +165,9 @@ directory (".") is assumed.
         template_path / C.config["training_strain_fname"],
     ]
     if params_quiet_flag:
-        paths.append(template_path / "ProjectParameters_quiet.json",)
+        paths.append(
+            template_path / "ProjectParameters_quiet.json",
+        )
 
     for p in paths:
         if not p.exists():
@@ -218,9 +221,15 @@ def generate():
     #
     # generate missing local bases
     #
-    B.generate_missing_local_bases(B.config["energy_name"],)
-    B.generate_missing_local_bases(B.config["strain_name"],)
-    B.generate_missing_local_bases(B.config["rvalue_name"],)
+    B.generate_missing_local_bases(
+        B.config["energy_name"],
+    )
+    B.generate_missing_local_bases(
+        B.config["strain_name"],
+    )
+    B.generate_missing_local_bases(
+        B.config["rvalue_name"],
+    )
 
     #
     # compute bases

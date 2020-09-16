@@ -6,10 +6,10 @@ import json
 import logging
 import numpy as np
 
-#import KratosMultiphysics
-#from KratosMultiphysics.StructuralMechanicsApplication import (
+# import KratosMultiphysics
+# from KratosMultiphysics.StructuralMechanicsApplication import (
 #    structural_mechanics_analysis,
-#)
+# )
 
 from common import Common
 
@@ -260,6 +260,7 @@ def write_ip_sets(common):
                 ofile.write("{} {} {} {}\n".format(list[0], list[1], list[2], list[3]))
 
     return
+
 
 #######################################################################
 # Main
