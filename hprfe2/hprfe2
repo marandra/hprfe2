@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
 """
+
+
+
+
+
+
 hprfe2 v0.9
 Marcelo Raschi <marcelo.raschi@gmail.com>
 Utilities for HPRFE2 modal bases datasets
@@ -39,6 +45,7 @@ COMMANDS:
 # fix logger
 # replace print by logger
 # fix logger messages (make them consistent)
+# show relative paths
 
 import logging
 from pathlib import Path
@@ -108,6 +115,16 @@ def _process_arguments(args):
 
     return keyword
 
+def validate(C):
+    """Run several checks before running."""
+
+    # Check that root path is correct (wrt config file)
+    if not C.config_file.is_file():
+        logger.error("{} not found. Correct root_path value?".format(C.config_file))
+        exit()
+
+    return
+
 
 def init(template_path, params_quiet_flag):
     """\
@@ -132,12 +149,11 @@ directory (".") is assumed.
             print("Directory {} exists. Skipping.".format(p))
 
     # Write initial configuration file
-    conf_file = C.root_path / "configuration.json"
-    if conf_file.is_file():
-        print("File {} exists. Skipping.".format(conf_file))
+    if C.conf_file.is_file():
+        print("File {} exists. Skipping.".format(C.conf_file))
     else:
-        C.dump_config(conf_file)
-        print("Written configuration file {}.".format(conf_file))
+        C.dump_config(C.conf_file)
+        print("Written configuration file {}.".format(C.conf_file))
 
     # Check that Kratos case files exist
     paths = [
@@ -183,14 +199,13 @@ sample deploy: populates directories"""
 
 
 def generate():
-    """\
-Creates file structure from the computation of bases
-"""
+    """Creates file structure from the computation of bases"""
+
     logger.info("Beginning bases calculation -----------------------")
 
     #
     # removing cases from training dataset
-    # TODO: add TRAINING set and TEST set as memebers of Common
+    # TODO: add TRAINING set and TEST set as members of Common
     #
     training_set = []
     for c in B.training_path.glob(B.config["case_path_pattern"].format("*")):
@@ -262,17 +277,21 @@ if __name__ == "__main__":
     elif KEYWORD == "DEPLOY_HELP":
         print(deploy.__doc__)
     elif KEYWORD == "DEPLOY":
+        validate(C)
         deploy()
     elif KEYWORD == "GENERATE_HELP":
         print(bases.__doc__)
         print(roc.__doc__)
         print(reconstruction.__doc__)
     elif KEYWORD == "GENERATE":
+        validate(C)
         generate()
     elif KEYWORD == "PACK_HELP":
         print(pack.__doc__)
     elif KEYWORD == "PACK":
+        validate(C)
         pack.write_datasets(C)
     else:
+        print("\n\n\n\n\n\n")
         print("Need a command. Try with --help.")
         exit()

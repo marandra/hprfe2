@@ -104,6 +104,7 @@ class Common:
 
         # file management
         self.root_path = root_path
+        self.config_file = self.root_path / config_fname
         self.training_path = self.root_path / self.config["training_path"]
         self.bases_path = self.root_path / self.config["bases_path"]
         self.datasets_path = self.root_path / self.config["datasets_path"]
@@ -213,8 +214,9 @@ class Common:
         if len(files) == 0:
             return None
         if len(files) > 1:
+            # TODO logger.warning(
             print(
-                "Warning: More than one {} bases file detected. "
+                "More than one {} bases file detected. "
                 "Picking first in the list: {}".format(field, files[0].name)
             )
         return files[0]
