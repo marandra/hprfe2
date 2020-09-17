@@ -58,21 +58,23 @@ import pack
 import reconstruction
 
 
-logging.basicConfig(
-    format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
-)
-fh = logging.FileHandler("hprfe2.log")
-# fh.setLevel(logging.DEBUG)
-fh.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-# ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
-logger = logging.getLogger(__name__)
-logger.addHandler(fh)
-# logger.addHandler(ch)
+def set_logger(root=Path(".")):
+    logging.basicConfig(
+        format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
+    )
+    fh = logging.FileHandler("hprfe2.log")
+    # fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+    # ch = logging.StreamHandler()
+    # ch.setLevel(logging.DEBUG)
+    # ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+    logger = logging.getLogger(__name__)
+    logger.addHandler(fh)
+    # logger.addHandler(ch)
+    return logger
 
 
-def _process_arguments(args):
+def process_arguments(args):
     """
     Process arguments
 
@@ -128,18 +130,17 @@ def validate(C):
 
 
 def init(template_path, params_quiet_flag):
-    """\
-Writes and creates initial files and directory structure at root path.
-Root path can be passed when invoking the command, if missing the current
-directory (".") is assumed.
+    """Writes and creates initial files and directory structure at root path.
+    Root path can be passed when invoking the command, if missing the current
+    directory (".") is assumed.
 
-- Checks if configurarion file is present
-- If missing, writes a file with default values
-- Checks template case files exists (including no-output parameters file if params_quiet
-  option is set)
-- Creates sampling directory (location passed as argument)
-- Copies template files to sampling directory
-"""
+    - Checks if configurarion file is present
+    - If missing, writes a file with default values
+    - Checks template case files exists (including no-output parameters file
+      if params_quiet option is set)
+    - Creates sampling directory (location passed as argument)
+    - Copies template files to sampling directory
+    """
 
     # Create basic dir structure
     for p in [C.training_path, C.bases_path, C.datasets_path]:
@@ -204,7 +205,7 @@ sample deploy: populates directories"""
 def generate():
     """Creates file structure from the computation of bases"""
 
-    logger.info("Beginning bases calculation -----------------------")
+    LOGGER.info("Beginning bases calculation -----------------------")
 
     #
     # removing cases from training dataset
@@ -214,7 +215,7 @@ def generate():
     for c in B.training_path.glob(B.config["case_path_pattern"].format("*")):
         c_id = int(c.name.split("_")[1])
         if c_id in B.config["cases_test_dataset"]:
-            logger.info("Removing case {} from training dataset".format(c.name))
+            LOGGER.info("Removing case {} from training dataset".format(c.name))
             continue
         training_set.append(c)
 
@@ -258,7 +259,7 @@ def generate():
         B.config["bases_fname_pattern"],
         B.svd_cutoff[B.config["rvalue_name"]],
     )
-    logger.info("Finished -----------------------------------------")
+    LOGGER.info("Finished -----------------------------------------")
 
     # Compute ROC ip sets
     roc.write_ip_sets(C)
@@ -274,10 +275,12 @@ def generate():
 if __name__ == "__main__":
 
     ARGS = docopt(__doc__, version="v0.9")
-    KEYWORD = _process_arguments(ARGS)
+    KEYWORD = process_arguments(ARGS)
 
-    C = common.Common(root_path=Path(ARGS["--root"]))
-    B = bases.Bases(root_path=Path(ARGS["--root"]))
+    LOGGER = set_logger(root=Path(ARGS["--root"]))
+
+    C = common.Common(root_path=Path(ARGS["--root"]), logger=LOGGER)
+    B = bases.Bases(root_path=Path(ARGS["--root"]), logger=LOGGER)
 
     if KEYWORD == "INIT_HELP":
         print(init.__doc__)

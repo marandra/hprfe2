@@ -41,7 +41,7 @@ class Common:
     TODO add docstrings
     """
 
-    def __init__(self, root_path):
+    def __init__(self, root_path, logger):
         config_fname = "configuration.json"
 
         try:
