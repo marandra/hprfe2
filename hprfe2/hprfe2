@@ -58,20 +58,20 @@ import pack
 import reconstruction
 
 
-def set_logger(root=Path(".")):
-    logging.basicConfig(
-        format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
-    )
-    fh = logging.FileHandler("hprfe2.log")
-    # fh.setLevel(logging.DEBUG)
-    fh.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
-    # ch = logging.StreamHandler()
-    # ch.setLevel(logging.DEBUG)
-    # ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
-    logger = logging.getLogger(__name__)
-    logger.addHandler(fh)
-    # logger.addHandler(ch)
-    return logger
+logging.basicConfig(
+    format="[%(asctime)s] %(message)s",
+    datefmt="%H:%M:%S",
+    level=logging.DEBUG
+)
+fh = logging.FileHandler("hprfe2.log")
+# fh.setLevel(logging.DEBUG)
+fh.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+# ch = logging.StreamHandler()
+# ch.setLevel(logging.DEBUG)
+# ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+logger = logging.getLogger(__name__)
+logger.addHandler(fh)
+# logger.addHandler(ch)
 
 
 def process_arguments(args):
@@ -146,16 +146,16 @@ def init(template_path, params_quiet_flag):
     for p in [C.training_path, C.bases_path, C.datasets_path]:
         if not p.exists():
             p.mkdir()
-            print("Created directory {}".format(p))
+            logger.info("Created directory {}".format(p))
         else:
-            print("Directory {} exists. Skipping.".format(p))
+            logger.info("Directory {} exists. Skipping.".format(p))
 
     # Write initial configuration file
-    if C.conf_file.is_file():
-        print("File {} exists. Skipping.".format(C.conf_file))
+    if C.config_file.is_file():
+        logger.info("File {} exists. Skipping.".format(C.config_file))
     else:
-        C.dump_config(C.conf_file)
-        print("Written configuration file {}.".format(C.conf_file))
+        C.dump_config(C.config_file)
+        logger.info("Written configuration file {}.".format(C.config_file))
 
     # Check that Kratos case files exist
     paths = [
@@ -172,14 +172,14 @@ def init(template_path, params_quiet_flag):
 
     for p in paths:
         if not p.exists():
-            print("Missing template file {}. Aborting.".format(p))
+            logger.error("Missing template file {}. Aborting.".format(p))
             exit()
 
     # Copy template files to sampling directory
     for src in paths:
         dest = C.training_path / src.name
         dest.write_text(src.read_text())
-    print("Template files copied to sampling directory")
+    logger.error("Template files copied to sampling directory")
 
     return
 
@@ -198,7 +198,7 @@ sample deploy: populates directories"""
         strain_vector = [float(x) for x in line.split()]
         sampling.create_case_dir(case_path, strain_vector)
         sampling.create_run_script(case_path)
-        print(case_path.name, strain_vector)
+        logger.info("{} {}".format(case_path.name, strain_vector))
     sampling.create_launchers(C.training_path)
 
 
@@ -206,10 +206,10 @@ def generate():
     """Creates file structure from the computation of bases"""
 
     # Generate bases
-    bases.run(C, LOGGER)
+    bases.run(C)
 
     # Compute ROC ip sets
-    roc.write_ip_sets(C, LOGGER)
+    roc.write_ip_sets(C)
 
     # Computes data for displacement reconstruction
     reconstruction.reconstruct_displacement(C)
@@ -224,10 +224,8 @@ if __name__ == "__main__":
     ARGS = docopt(__doc__, version="v0.9")
     KEYWORD = process_arguments(ARGS)
 
-    LOGGER = set_logger(root=Path(ARGS["--root"]))
-
-    C = common.Common(root_path=Path(ARGS["--root"]), logger=LOGGER)
-    B = bases.Bases(root_path=Path(ARGS["--root"]), logger=LOGGER)
+    C = common.Common(root_path=Path(ARGS["--root"]))
+    B = bases.Bases(root_path=Path(ARGS["--root"]))
 
     if KEYWORD == "INIT_HELP":
         print(init.__doc__)

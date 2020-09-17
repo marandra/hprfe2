@@ -3,11 +3,14 @@
 # Check fire for exposing objects to CLI https://github.com/google/python-fire
 # Check docopt for args parsing https://github.com/docopt/docopt
 
+import logging
 import json
 from pathlib import Path
 from docopt import docopt
-
 # import fire
+
+
+logger = logging.getLogger(__name__)
 
 
 def validate_config(default, user):
@@ -41,8 +44,9 @@ class Common:
     TODO add docstrings
     """
 
-    def __init__(self, root_path, logger):
-        config_fname = "configuration.json"
+    def __init__(self, root_path):
+
+        config_fname = "config.json"
 
         try:
             config_user = json.loads((root_path / config_fname).read_text())[
@@ -219,8 +223,7 @@ class Common:
         if len(files) == 0:
             return None
         if len(files) > 1:
-            # TODO logger.warning(
-            print(
+            logger.warning(
                 "More than one {} bases file detected. "
                 "Picking first in the list: {}".format(field, files[0].name)
             )
@@ -230,6 +233,8 @@ class Common:
 #####################################################################
 # main
 #####################################################################
+
+# TODO: move this to tests
 
 if __name__ == "__main__":
     C = Common(root_path=Path("."))

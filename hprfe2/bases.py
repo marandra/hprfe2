@@ -1,6 +1,7 @@
 """
 BASES: pending description here.
 """
+import logging
 import os
 import time
 from pathlib import Path
@@ -11,12 +12,14 @@ import sklearn.decomposition
 from common import Common
 
 
+logger = logging.getLogger(__name__)
+
+
 class Bases(Common):
     """Functions for snapshots I/O and bases generation."""
 
     def __init__(self, **kargv):
         super().__init__(**kargv)
-        self.logger = kargv["logger"]
 
     def write_field_to_hdf5(self, filename, group, field, timestep, data):
         with h5py.File(filename, "a") as f:
@@ -203,16 +206,16 @@ class Bases(Common):
             U = svd.components_.T
             S = svd.singular_values_.T
         else:
-            self.logger.info("- Computing SVD using STANDARD algorithm")
+            logger.info("- Computing SVD using STANDARD algorithm")
             [U, S] = numpy.linalg.svd(X, full_matrices=False)[:2]
 
-        self.logger.info("    - SVD time: {:.1f}s".format(time.time() - t0))
-        self.logger.info("    - singular value of selected modes:")
-        self.logger.info("      {}".format(S[:nr_modes]))
-        self.logger.info("      validation: following singular values (excluded):")
-        self.logger.info("      {}".format(S[nr_modes : nr_modes + 4]))
-        self.logger.info("    - nr and size of modes: {}, {}".format(U.shape[1], U.shape[0]))
-        self.logger.info("")
+        logger.info("    - SVD time: {:.1f}s".format(time.time() - t0))
+        logger.info("    - singular value of selected modes:")
+        logger.info("      {}".format(S[:nr_modes]))
+        logger.info("      validation: following singular values (excluded):")
+        logger.info("      {}".format(S[nr_modes : nr_modes + 4]))
+        logger.info("    - nr and size of modes: {}, {}".format(U.shape[1], U.shape[0]))
+        logger.info("")
         numpy.savetxt(self.bases_path / "singular_values.dat", S)
         return U
 
@@ -226,18 +229,18 @@ class Bases(Common):
         cutoff_tol,
     ):
         if self.skip_calculation(self.bases_path / bases_fname.format(field_name, "*")):
-            self.logger.info(
+            logger.info(
                 "File {} exists. Skipping calculation".format(
                     bases_fname.format(field_name, "*")
                 )
             )
             return
-        self.logger.info("Generating {} bases".format(field_name))
+        logger.info("Generating {} bases".format(field_name))
 
         t0 = time.time()
         # Snapshots splitted in elastic and inelastic groups
         if nr_elastic_modes > 0:
-            self.logger.info("- Processing ELASTIC snapshots")
+            logger.info("- Processing ELASTIC snapshots")
             X = self.read_snapshots(cases_path, "ELASTIC", field_name)
             Ue = self.compute_svd(X, nr_elastic_modes)
             os.rename(
@@ -245,7 +248,7 @@ class Bases(Common):
                 self.bases_path / "sv_{}_elastic.dat".format(field_name),
             )
 
-            self.logger.info("- Processing INELASTIC modes")
+            logger.info("- Processing INELASTIC modes")
             X = self.read_local_svd(cases_path, field_name, cutoff_tol)
             X = self.remove_elastic_modes(X, Ue)
             Ui = self.compute_svd(X, nr_inelastic_modes)
@@ -258,7 +261,7 @@ class Bases(Common):
 
         # No splitting of elastic and inelastic snapshots
         else:
-            self.logger.info(
+            logger.info(
                 "Nr of elastic modes set to zero -> "
                 "Not discriminating elastic/inelastic snapshots"
             )
@@ -272,12 +275,12 @@ class Bases(Common):
         numpy.save(
             self.bases_path / bases_fname.format(field_name, numpy.shape(U)[1]), U
         )
-        self.logger.info("  Elapsed time: {:.1f}s".format(time.time() - t0))
-        self.logger.info("")
+        logger.info("  Elapsed time: {:.1f}s".format(time.time() - t0))
+        logger.info("")
 
     def generate_local_bases(self, case, field, ss_fname, lb_fname, sv_fname):
         base = case / lb_fname
-        self.logger.debug("   - missing {} {}".format(base.parent.name, base.name))
+        logger.debug("   - missing {} {}".format(base.parent.name, base.name))
         X = self._read_snapshots_in_case(case / ss_fname, "INELASTIC", field)
         [U, S] = numpy.linalg.svd(X, full_matrices=False)[:2]
         numpy.save(base, U)
@@ -285,7 +288,7 @@ class Bases(Common):
         numpy.savetxt(path, S)
 
     def generate_missing_local_bases(self, field, threads=1):
-        self.logger.info("Looking for missing local bases {}".format(field))
+        logger.info("Looking for missing local bases {}".format(field))
         cases_path = self.training_path.glob(
             self.config["case_path_pattern"].format("*")
         )
@@ -305,13 +308,13 @@ class Bases(Common):
             try:
                 self.generate_local_bases(case, field, ss_fname, lb_fname, sv_fname)
             except:
-                self.logger.info("  - skipping case: not inelastic snapshots present")
+                logger.info("  - skipping case: not inelastic snapshots present")
                 continue
 
         # Testing: version with Pool
         # with multiprocessing.Pool(processes=threads) as pool:
-        #    self.logger.debug("   - generating bases")
-        #    self.logger.debug("   - multiprocessing {} threads".format(threads))
+        #    logger.debug("   - generating bases")
+        #    logger.debug("   - multiprocessing {} threads".format(threads))
         #    pool.starmap(generate_local_bases, zip(missing, [field] * len(missing)))
 
         # Testing: version with Process
@@ -325,7 +328,7 @@ class Bases(Common):
         #    p.join()
 
 
-def run(common, logger):
+def run(common):
     """Creates file structure from the computation of bases"""
 
     logger.info("Beginning bases calculation -----------------------")
@@ -335,9 +338,9 @@ def run(common, logger):
     # TODO: add TRAINING set and TEST set as members of Common
     #
     training_set = []
-    for c in B.training_path.glob(B.config["case_path_pattern"].format("*")):
+    for c in common.training_path.glob(B.config["case_path_pattern"].format("*")):
         c_id = int(c.name.split("_")[1])
-        if c_id in B.config["cases_test_dataset"]:
+        if c_id in common.config["cases_test_dataset"]:
             logger.info("Removing case {} from training dataset".format(c.name))
             continue
         training_set.append(c)
@@ -346,41 +349,41 @@ def run(common, logger):
     # generate missing local bases
     #
     B.generate_missing_local_bases(
-        B.config["energy_name"],
+        common.config["energy_name"],
     )
     B.generate_missing_local_bases(
-        B.config["strain_name"],
+        common.config["strain_name"],
     )
     B.generate_missing_local_bases(
-        B.config["rvalue_name"],
+        common.config["rvalue_name"],
     )
 
     #
     # compute bases
     #
     B.create_bases(
-        B.config["energy_name"],
-        B.config["energy_elastic_modes"],
-        B.config["energy_inelastic_modes"],
+        common.config["energy_name"],
+        common.config["energy_elastic_modes"],
+        common.config["energy_inelastic_modes"],
         training_set,
-        B.config["bases_fname_pattern"],
-        B.svd_cutoff[B.config["energy_name"]],
+        common.config["bases_fname_pattern"],
+        common.svd_cutoff[common.config["energy_name"]],
     )
     B.create_bases(
-        B.config["strain_name"],
-        B.config["strain_elastic_modes"],
-        B.config["strain_inelastic_modes"],
+        common.config["strain_name"],
+        common.config["strain_elastic_modes"],
+        common.config["strain_inelastic_modes"],
         training_set,
-        B.config["bases_fname_pattern"],
-        B.svd_cutoff[B.config["strain_name"]],
+        common.config["bases_fname_pattern"],
+        common.svd_cutoff[common.config["strain_name"]],
     )
     B.create_bases(
-        B.config["rvalue_name"],
-        B.config["rvalue_elastic_modes"],
-        B.config["rvalue_inelastic_modes"],
+        common.config["rvalue_name"],
+        common.config["rvalue_elastic_modes"],
+        common.config["rvalue_inelastic_modes"],
         training_set,
-        B.config["bases_fname_pattern"],
-        B.svd_cutoff[B.config["rvalue_name"]],
+        common.config["bases_fname_pattern"],
+        common.svd_cutoff[common.config["rvalue_name"]],
     )
     logger.info("Finished -----------------------------------------")
 

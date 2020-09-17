@@ -1,6 +1,7 @@
 """
 ROC: pending description here.
 """
+import logging
 from pathlib import Path
 import json
 import numpy as np
@@ -10,6 +11,8 @@ import numpy as np
 # )
 from common import Common
 
+
+logger = logging.getLogger(__name__)
 
 ###########################################################
 #   Reduced Order Cubeture algorithm
@@ -170,7 +173,7 @@ def compute_rom_weights(ip_data):
     return roq_list
 
 
-def write_ip_sets(common, logger):
+def write_ip_sets(common):
     """ docstring here """
 
     import KratosMultiphysics
@@ -260,16 +263,9 @@ def write_ip_sets(common, logger):
 if __name__ == "__main__":
 
     import sys
-    import logging
-
-    logging.basicConfig(
-        format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
-    )
-    logger = logging.getLogger(__name__)
-
     if len(sys.argv) > 1:
-        C = Common(Path(sys.argv[1]), logger)
+        C = Common(Path(sys.argv[1]))
     else:
         exit("Usage: python roc.py <root_path>")
 
-    write_ip_sets(C, logger)
+    write_ip_sets(C)

@@ -2,10 +2,14 @@
 docstrings here
 """
 
+import logging
 import os
 import json
 from pathlib import Path
 from common import Common
+
+
+logger = logging.getLogger(__name__)
 
 
 def customize_properties(props, strain, quiet=False):

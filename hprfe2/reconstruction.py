@@ -2,6 +2,7 @@
 RECONSTRUCTION: description here
 """
 
+import logging
 from pathlib import Path
 import json
 
@@ -15,6 +16,9 @@ from KratosMultiphysics.StructuralMechanicsApplication import (
     structural_mechanics_analysis,
 )
 from common import Common
+
+
+logger = logging.getLogger(__name__)
 
 
 class DisplacementReconstructionSolver(MechanicalSolver):
