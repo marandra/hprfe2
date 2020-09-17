@@ -3,9 +3,7 @@ BASES: pending description here.
 """
 import os
 import time
-#import logging
 from pathlib import Path
-
 # import multiprocessing
 import numpy
 import h5py
@@ -327,27 +325,19 @@ class Bases(Common):
         #    p.join()
 
 
-#######################################################################
-# main
-#######################################################################
+def run(common, logger):
+    """Creates file structure from the computation of bases"""
 
-if __name__ == "__main__":
-
-    import sys
-
-    if len(sys.argv) > 1:
-        bases = Bases(root_path=Path(sys.argv[1]))
-    else:
-        exit("Missing root_path argument.")
+    logger.info("Beginning bases calculation -----------------------")
 
     #
     # removing cases from training dataset
-    # TODO: add TRAINING set and TEST set as memebers of Common
+    # TODO: add TRAINING set and TEST set as members of Common
     #
     training_set = []
-    for c in bases.training_path.glob(bases.config["case_path_pattern"].format("*")):
+    for c in B.training_path.glob(B.config["case_path_pattern"].format("*")):
         c_id = int(c.name.split("_")[1])
-        if c_id in bases.config["cases_test_dataset"]:
+        if c_id in B.config["cases_test_dataset"]:
             logger.info("Removing case {} from training dataset".format(c.name))
             continue
         training_set.append(c)
@@ -355,42 +345,43 @@ if __name__ == "__main__":
     #
     # generate missing local bases
     #
-    bases.generate_missing_local_bases(
-        bases.config["energy_name"],
+    B.generate_missing_local_bases(
+        B.config["energy_name"],
     )
-    bases.generate_missing_local_bases(
-        bases.config["strain_name"],
+    B.generate_missing_local_bases(
+        B.config["strain_name"],
     )
-    bases.generate_missing_local_bases(
-        bases.config["rvalue_name"],
+    B.generate_missing_local_bases(
+        B.config["rvalue_name"],
     )
 
     #
     # compute bases
     #
-    bases.create_bases(
-        bases.config["energy_name"],
-        bases.config["energy_elastic_modes"],
-        bases.config["energy_inelastic_modes"],
+    B.create_bases(
+        B.config["energy_name"],
+        B.config["energy_elastic_modes"],
+        B.config["energy_inelastic_modes"],
         training_set,
-        bases.config["bases_fname_pattern"],
-        bases.svd_cutoff[bases.config["energy_name"]],
+        B.config["bases_fname_pattern"],
+        B.svd_cutoff[B.config["energy_name"]],
     )
-    bases.create_bases(
-        bases.config["strain_name"],
-        bases.config["strain_elastic_modes"],
-        bases.config["strain_inelastic_modes"],
+    B.create_bases(
+        B.config["strain_name"],
+        B.config["strain_elastic_modes"],
+        B.config["strain_inelastic_modes"],
         training_set,
-        bases.config["bases_fname_pattern"],
-        bases.svd_cutoff[bases.config["strain_name"]],
+        B.config["bases_fname_pattern"],
+        B.svd_cutoff[B.config["strain_name"]],
     )
-    bases.create_bases(
-        bases.config["rvalue_name"],
-        bases.config["rvalue_elastic_modes"],
-        bases.config["rvalue_inelastic_modes"],
+    B.create_bases(
+        B.config["rvalue_name"],
+        B.config["rvalue_elastic_modes"],
+        B.config["rvalue_inelastic_modes"],
         training_set,
-        bases.config["bases_fname_pattern"],
-        bases.svd_cutoff[bases.config["rvalue_name"]],
+        B.config["bases_fname_pattern"],
+        B.svd_cutoff[B.config["rvalue_name"]],
     )
-
     logger.info("Finished -----------------------------------------")
+
+    return

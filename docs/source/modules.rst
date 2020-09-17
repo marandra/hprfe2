@@ -1,5 +1,5 @@
-hprfe2
-======
+Development
+===========
 
 .. toctree::
    :maxdepth: 4

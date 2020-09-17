@@ -3,21 +3,12 @@ ROC: pending description here.
 """
 from pathlib import Path
 import json
-import logging
 import numpy as np
-
 # import KratosMultiphysics
 # from KratosMultiphysics.StructuralMechanicsApplication import (
 #    structural_mechanics_analysis,
 # )
-
 from common import Common
-
-
-logging.basicConfig(
-    format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
-)
-logger = logging.getLogger(__name__)
 
 
 ###########################################################
@@ -179,7 +170,7 @@ def compute_rom_weights(ip_data):
     return roq_list
 
 
-def write_ip_sets(common):
+def write_ip_sets(common, logger):
     """ docstring here """
 
     import KratosMultiphysics
@@ -269,10 +260,16 @@ def write_ip_sets(common):
 if __name__ == "__main__":
 
     import sys
+    import logging
+
+    logging.basicConfig(
+        format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
+    )
+    logger = logging.getLogger(__name__)
 
     if len(sys.argv) > 1:
-        C = Common(root_path=Path(sys.argv[1]))
+        C = Common(Path(sys.argv[1]), logger)
     else:
-        exit("Missing root_path argument.")
+        exit("Usage: python roc.py <root_path>")
 
-    write_ip_sets(C)
+    write_ip_sets(C, logger)

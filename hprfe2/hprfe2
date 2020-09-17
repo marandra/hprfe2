@@ -118,7 +118,7 @@ def process_arguments(args):
     return keyword
 
 
-def validate(C):
+def validate():
     """Run several checks before running."""
 
     # Check that root path is correct (wrt config file)
@@ -205,64 +205,11 @@ sample deploy: populates directories"""
 def generate():
     """Creates file structure from the computation of bases"""
 
-    LOGGER.info("Beginning bases calculation -----------------------")
-
-    #
-    # removing cases from training dataset
-    # TODO: add TRAINING set and TEST set as members of Common
-    #
-    training_set = []
-    for c in B.training_path.glob(B.config["case_path_pattern"].format("*")):
-        c_id = int(c.name.split("_")[1])
-        if c_id in B.config["cases_test_dataset"]:
-            LOGGER.info("Removing case {} from training dataset".format(c.name))
-            continue
-        training_set.append(c)
-
-    #
-    # generate missing local bases
-    #
-    B.generate_missing_local_bases(
-        B.config["energy_name"],
-    )
-    B.generate_missing_local_bases(
-        B.config["strain_name"],
-    )
-    B.generate_missing_local_bases(
-        B.config["rvalue_name"],
-    )
-
-    #
-    # compute bases
-    #
-    B.create_bases(
-        B.config["energy_name"],
-        B.config["energy_elastic_modes"],
-        B.config["energy_inelastic_modes"],
-        training_set,
-        B.config["bases_fname_pattern"],
-        B.svd_cutoff[B.config["energy_name"]],
-    )
-    B.create_bases(
-        B.config["strain_name"],
-        B.config["strain_elastic_modes"],
-        B.config["strain_inelastic_modes"],
-        training_set,
-        B.config["bases_fname_pattern"],
-        B.svd_cutoff[B.config["strain_name"]],
-    )
-    B.create_bases(
-        B.config["rvalue_name"],
-        B.config["rvalue_elastic_modes"],
-        B.config["rvalue_inelastic_modes"],
-        training_set,
-        B.config["bases_fname_pattern"],
-        B.svd_cutoff[B.config["rvalue_name"]],
-    )
-    LOGGER.info("Finished -----------------------------------------")
+    # Generate bases
+    bases.run(C, LOGGER)
 
     # Compute ROC ip sets
-    roc.write_ip_sets(C)
+    roc.write_ip_sets(C, LOGGER)
 
     # Computes data for displacement reconstruction
     reconstruction.reconstruct_displacement(C)
@@ -289,19 +236,19 @@ if __name__ == "__main__":
     elif KEYWORD == "DEPLOY_HELP":
         print(deploy.__doc__)
     elif KEYWORD == "DEPLOY":
-        validate(C)
+        validate()
         deploy()
     elif KEYWORD == "GENERATE_HELP":
         print(bases.__doc__)
         print(roc.__doc__)
         print(reconstruction.__doc__)
     elif KEYWORD == "GENERATE":
-        validate(C)
+        validate()
         generate()
     elif KEYWORD == "PACK_HELP":
         print(pack.__doc__)
     elif KEYWORD == "PACK":
-        validate(C)
+        validate()
         pack.write_datasets(C)
     else:
         print("\n\n\n\n\n\n")

@@ -28,8 +28,15 @@ It is more convenient to create a virtual environment::
     >>> source venv/bin/activate.sh
     >>> pip install -r requirements.txt
 
+ 
+
+Usage
+=====
+
+Usage.
+
 Configuration
-=============
+-------------
 
 The default configuration file of each material is ``configuration.json``.
 It must be present and located at the root directory of the material.
@@ -50,9 +57,13 @@ This step generates a ``configuration.json`` similar to::
       }
     }
     
-  
 
-Usage
-=====
+Sampling
+--------
+Sampling usage.
 
-Usage.
+
+Bases generation
+----------------
+Bases generation usage.
+

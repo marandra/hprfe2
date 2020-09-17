@@ -1,5 +1,5 @@
-hprfe2 package
-==============
+hprfe2
+======
 
 Submodules
 ----------
