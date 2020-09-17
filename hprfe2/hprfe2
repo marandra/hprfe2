@@ -224,8 +224,7 @@ if __name__ == "__main__":
     ARGS = docopt(__doc__, version="v0.9")
     KEYWORD = process_arguments(ARGS)
 
-    C = common.Common(root_path=Path(ARGS["--root"]))
-    B = bases.Bases(root_path=Path(ARGS["--root"]))
+    C = common.Common(Path(ARGS["--root"]))
 
     if KEYWORD == "INIT_HELP":
         print(init.__doc__)
