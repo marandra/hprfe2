@@ -59,16 +59,13 @@ class Common:
         defaults_basic = {
             # most frequently set
             "cases_test_dataset": [0],
-            "rve_data_points": [
-                200,
-                150,
-            ],
-            "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
+            "rve_data_points": [ 200, 150, ],
             "rve_data_points_rom": True,
             "rve_data_modes": [20, 30],
             "reconstruction_pairs": [[20, 150], [30,200], ],
         }
         defaults_advanced = {
+            "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
             #
             "energy_name": "ENERGY_FREE",
             "energy_elastic_modes": 21,
