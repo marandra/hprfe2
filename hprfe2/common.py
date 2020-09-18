@@ -66,6 +66,7 @@ class Common:
             "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
             "rve_data_points_rom": True,
             "rve_data_modes": [20, 30],
+            "reconstruction_pairs": [[20, 150], [30,200], ],
         }
         defaults_advanced = {
             #
