@@ -55,22 +55,6 @@ import pack
 #import reconstruction
 
 
-logging.basicConfig(
-    format="[%(asctime)s] %(message)s",
-    datefmt="%H:%M:%S",
-    level=logging.DEBUG
-)
-fh = logging.FileHandler("hprfe2.log")
-# fh.setLevel(logging.DEBUG)
-fh.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
-# ch = logging.StreamHandler()
-# ch.setLevel(logging.DEBUG)
-# ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
-logger = logging.getLogger(__name__)
-logger.addHandler(fh)
-# logger.addHandler(ch)
-
-
 def process_arguments(args):
     """
     Process arguments
@@ -239,6 +223,23 @@ if __name__ == "__main__":
     KEYWORD = process_arguments(ARGS)
 
     C = common.Common(Path(ARGS["--root"]))
+
+    # Configure logger
+    logging.basicConfig(
+        format="[%(asctime)s] %(message)s",
+        datefmt="%H:%M:%S",
+        level=logging.DEBUG
+    )
+    fh = logging.FileHandler("{}".format(C.root_path / "hprfe2.log"))
+    # fh.setLevel(logging.DEBUG)
+    fh.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+    # ch = logging.StreamHandler()
+    # ch.setLevel(logging.DEBUG)
+    # ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
+    logger = logging.getLogger(__name__)
+    logger.addHandler(fh)
+    # logger.addHandler(ch)
+
 
     if KEYWORD == "INIT_HELP":
         print(init.__doc__)
