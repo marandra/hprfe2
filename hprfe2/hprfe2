@@ -31,6 +31,7 @@ COMMANDS:
     resources   Create datasets for fields reconstruction
 """
 # TODO
+# update python to 3.8 in acuario
 # get rid of Kratos banner!
 # change file modes 0644
 # change launchers file mode 755 and add env
