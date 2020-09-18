@@ -63,23 +63,25 @@ class DisplacementReconstructionAnalysis(AnalysisStage):
 #
 def reconstruct_displacement_all(common):
     ### workaround until we can make Kratos change the elemen type
-    model_custom_fname = common.bases_path / "model_custom.mdpa"
+    model_custom_path = common.bases_path / "model_custom.mdpa"
     model_original_text = (common.training_path / "model.mdpa").read_text()
     model_custom_text = model_original_text.replace(
         "DisplacementElement", "DisplacementCustomElement"
     )
-    model_custom_fname.write_text(model_custom_text)
+    model_custom_path.write_text(model_custom_text)
     ###
 
     for pair in common.config["reconstruction_pairs"]:
         nmodes = pair[0]
-        fname = common.bases_path / "correlation_strain_{}.npy".format(nmodes)
-        if common.skip_calculation(fname):
-            logger.info("{} exists. Skipping.".format(fname.name))
+        path = common.bases_path / "correlation_strain_{}.npy".format(nmodes)
+        if common.skip_calculation(path):
+            logger.info("{} exists. Skipping.".format(path.name))
             continue
         reconstruct_displacement(common, nmodes)
 
-    # remove custom model
+    # remove custom model file
+    model_custom_path.unlink(missing_ok=True)
+
     return
 
 
@@ -87,9 +89,9 @@ def reconstruct_displacement(common, n_modes):
     """displacement docstrings here """
 
     # Define parameters for reconstruction
-    model_custom_fname = common.bases_path / "model_custom.mdpa"
+    model_custom_path = common.bases_path / "model_custom.mdpa"
     strain_bases_fname = common.get_bases_fname("STRAIN")
-    global_index_fname = common.bases_path / "auxiliar_global_index"
+    global_index_path = common.bases_path / "auxiliar_global_index"
     materials_fname = common.training_path / "materials.json"
     correl_fname = common.bases_path / "correlation_strain_{}.npy".format(n_modes)
 
@@ -108,7 +110,7 @@ def reconstruct_displacement(common, n_modes):
             "time_stepping": {"time_step": 1.0},
             "solver_type": "Static",
             "model_import_settings": {
-                "input_filename": str(model_custom_fname.with_suffix("")),
+                "input_filename": str(model_custom_path.with_suffix("")),
                 "input_type": "mdpa",
             },
             "material_import_settings": {
@@ -142,7 +144,7 @@ def reconstruct_displacement(common, n_modes):
                         "model_part_name": "Microstructure.RVE",
                         "modes_filename": str(strain_bases_fname),
                         "modes_file_format": "binary",
-                        "global_index_filename": str(global_index_fname),
+                        "global_index_filename": str(global_index_path),
                         "number_modes_to_load": n_modes,
                         "modes_to_nodes_matrix_filename": str(correl_fname),
                         "modes_to_nodes_matrix_file_format": "binary",
@@ -263,6 +265,7 @@ def reconstruct_displacement(common, n_modes):
     simulation.Finalize()
 
     # remove global index
+    global_index_path.unlink(missing_ok=True)
     return
 
 
