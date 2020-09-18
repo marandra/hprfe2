@@ -1,22 +1,16 @@
 #!/usr/bin/env python3
 """
-
-
-
-
-
-
 hprfe2 v0.9
 Marcelo Raschi <marcelo.raschi@gmail.com>
 Utilities for HPRFE2 modal bases datasets
 
 USAGE:
     hprfe2 [-h]
-    hprfe2 [-r PATH] init [help | <template> [-n]]
     hprfe2 [-r PATH] init (help | <template> [-n])
     hprfe2 [-r PATH] deploy [help]
     hprfe2 [-r PATH] generate [help]
     hprfe2 [-r PATH] pack [help]
+    hprfe2 [-r PATH] resources [help]
 
 FLAGS:
     -h --help             Prints help information
@@ -29,13 +23,15 @@ OPTIONS:
                           configuration file must be located [default: .]
 
 COMMANDS:
-    help      Print detailed information of a command
-    init      Create configuration file, directories, and copy template files
-    deploy    Deploy template cases for sampling
-    generate  Generate bases and IP sets
-    pack      Create dataset files
+    help        Print detailed information of a command
+    init        Create configuration file, directories, and copy template files
+    deploy      Deploy template cases for sampling
+    generate    Generate bases and IP sets
+    pack        Create dataset files
+    resources   Create datasets for fields reconstruction
 """
 # TODO
+# get rid of Kratos banner!
 # change file modes 0644
 # change launchers file mode 755 and add env
 # change dirs modes (755?)
@@ -56,7 +52,7 @@ import sampling
 import bases
 import roc
 import pack
-import reconstruction
+#import reconstruction
 
 
 logging.basicConfig(
@@ -87,8 +83,8 @@ def process_arguments(args):
     """
 
     # Debug:
-    # from pprint import pprint
-    # pprint(args)
+    #from pprint import pprint
+    #pprint(args)
 
     keyword = ""
 
@@ -115,6 +111,12 @@ def process_arguments(args):
             keyword = "PACK_HELP"
         else:
             keyword = "PACK"
+
+    if args["resources"]:
+        if args["help"]:
+            keyword = "RESOURCES_HELP"
+        else:
+            keyword = "RESOURCES"
 
     return keyword
 
@@ -211,9 +213,20 @@ def generate():
 
     # Compute ROC ip sets
     roc.write_ip_sets(C)
+    return
+
+def resources():
+    """ doc """
+
+    # workaround: move import here, to avoid printing Kratos banner
+    import reconstruction
 
     # Computes data for displacement reconstruction
-    reconstruction.reconstruct_displacement(C)
+    reconstruction.reconstruct_displacement_all(C)
+
+    # Computes data for damage reconstruction
+    reconstruction.reconstruct_damage_all(C)
+    return
 
 
 #####################################################################
@@ -239,7 +252,6 @@ if __name__ == "__main__":
     elif KEYWORD == "GENERATE_HELP":
         print(bases.__doc__)
         print(roc.__doc__)
-        print(reconstruction.__doc__)
     elif KEYWORD == "GENERATE":
         validate()
         generate()
@@ -248,7 +260,16 @@ if __name__ == "__main__":
     elif KEYWORD == "PACK":
         validate()
         pack.write_datasets(C)
+    elif KEYWORD == "RESOURCES_HELP":
+        # workaround: avoiding importing module until use, banner Kratos
+        #print(reconstruction.__doc__)
+        #print(reconstruction.reconstruct_displacement.__doc__)
+        #print(reconstruction.reconstruct_damage.__doc__)
+        # Printting our own help for now...
+        print("Reconstruction help: add docs here")
+    elif KEYWORD == "RESOURCES":
+        validate()
+        resources()
     else:
-        print("\n\n\n\n\n\n")
         print("Need a command. Try with --help.")
         exit()

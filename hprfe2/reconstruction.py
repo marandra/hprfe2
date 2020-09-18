@@ -3,9 +3,9 @@ RECONSTRUCTION: description here
 """
 
 import logging
-from pathlib import Path
 import json
-
+import numpy
+from pathlib import Path
 import KratosMultiphysics
 import KratosMultiphysics.MultiscaleROMApplication
 from KratosMultiphysics.analysis_stage import AnalysisStage
@@ -19,6 +19,11 @@ from common import Common
 
 
 logger = logging.getLogger(__name__)
+
+
+#
+# Classes for setting Kratos solvers
+#
 
 
 class DisplacementReconstructionSolver(MechanicalSolver):
@@ -53,13 +58,40 @@ class DisplacementReconstructionAnalysis(AnalysisStage):
         return solver
 
 
-def reconstruct_displacement(common):
-    """ docstrings here """
+#
+# Functions for DISPLACEMENT reconstruction
+#
+def reconstruct_displacement_all(common):
+    ### workaround until we can make Kratos change the elemen type
+    model_custom_fname = common.bases_path / "model_custom.mdpa"
+    model_original_text = (common.training_path / "model.mdpa").read_text()
+    model_custom_text = model_original_text.replace(
+        "DisplacementElement", "DisplacementCustomElement"
+    )
+    model_custom_fname.write_text(model_custom_text)
+    ###
+
+    for pair in common.config["reconstruction_pairs"]:
+        nmodes = pair[0]
+        fname = common.bases_path / "correlation_strain_{}.npy".format(nmodes)
+        if common.skip_calculation(fname):
+            logger.info("{} exists. Skipping.".format(fname.name))
+            continue
+        reconstruct_displacement(common, nmodes)
+
+    # remove custom model
+    return
+
+
+def reconstruct_displacement(common, n_modes):
+    """displacement docstrings here """
 
     # Define parameters for reconstruction
     model_custom_fname = common.bases_path / "model_custom.mdpa"
     strain_bases_fname = common.get_bases_fname("STRAIN")
-    n_modes = 30
+    global_index_fname = common.bases_path / "auxiliar_global_index"
+    materials_fname = common.training_path / "materials.json"
+    correl_fname = common.bases_path / "correlation_strain_{}.npy".format(n_modes)
 
     params_reconstr_dict = {
         "problem_data": {
@@ -80,7 +112,7 @@ def reconstruct_displacement(common):
                 "input_type": "mdpa",
             },
             "material_import_settings": {
-                "materials_filename": str(common.training_path / "materials.json"),
+                "materials_filename": str(materials_fname),
             },
             "linear_solver_settings": {
                 "solver_type": "amgcl",
@@ -110,14 +142,9 @@ def reconstruct_displacement(common):
                         "model_part_name": "Microstructure.RVE",
                         "modes_filename": str(strain_bases_fname),
                         "modes_file_format": "binary",
-                        "global_index_filename": str(
-                            common.bases_path / "auxiliar_global_index"
-                        ),
+                        "global_index_filename": str(global_index_fname),
                         "number_modes_to_load": n_modes,
-                        "modes_to_nodes_matrix_filename": str(
-                            common.bases_path
-                            / "correlation_strain_{}.npy".format(n_modes)
-                        ),
+                        "modes_to_nodes_matrix_filename": str(correl_fname),
                         "modes_to_nodes_matrix_file_format": "binary",
                     },
                 }
@@ -155,13 +182,6 @@ def reconstruct_displacement(common):
     parameters_reconstr = KratosMultiphysics.Parameters(
         json.dumps(params_reconstr_dict)
     )
-
-    # workaround until we can make Kratos change the elemen type
-    model_original_text = (common.training_path / "model.mdpa").read_text()
-    model_custom_text = model_original_text.replace(
-        "DisplacementElement", "DisplacementCustomElement"
-    )
-    model_custom_fname.write_text(model_custom_text)
 
     #  Generate auxiliar data structure
     parameters_dict = {
@@ -239,104 +259,102 @@ def reconstruct_displacement(common):
     #    }
     #    """)
     # KratosMultiphysics.ReplaceElementsAndConditionsProcess(modelpart, settings).Execute()
-
     simulation.RunSolutionLoop()
     simulation.Finalize()
 
+    # remove global index
     return
 
 
-###############################################################
-###############################################################
+#
+# Functions for DAMAGE Reconstruction
+#
+def load_rve_data(rve_data):
+    logger.info("Reading reduced set integration points")
+    reduced_ip_set = rve_data["ip_global_id"]
+    logger.info("Nr ip detected: {}".format(numpy.shape(reduced_ip_set)[0]))
+    logger.info("Reading reduced set integration weights")
+    reduced_ip_weights = numpy.array(rve_data["ip_weight"])
+    logger.info("Nr weights detected: {}".format(numpy.shape(reduced_ip_weights)[0]))
+    return reduced_ip_set, reduced_ip_weights
 
-if __name__ == "__main__":
-    import sys
 
-    if len(sys.argv) > 1:
-        co = Common(root_path=Path(sys.argv[1]))
-    else:
-        exit("Missing root_path argument.")
-#
-#    # Read parametres for reconstruction
-#    with open("../ProjectParameters_correlation.json", "r") as parameter_file:
-#        parameters_reconstr = KratosMultiphysics.Parameters(parameter_file.read())
-#
-#    #  Generate auxiliar data structure
-#    parameters_dict = {
-#        "problem_data": {
-#        "problem_name": "High_Fidelity",
-#        "parallel_type": "OpenMP",
-#        "start_time": 0.0,
-#        "end_time": 0.99,
-#        "echo_level": 1,
-#    },
-#    "solver_settings": {
-#        "model_part_name": "Microstructure",
-#        "domain_size": 3,
-#        "echo_level": 1,
-#        "time_stepping": {},
-#        "solver_type": "Static",
-#        "model_import_settings": {
-#            "input_type": "mdpa",
-#            "input_filename": "{}/model".format(co.training_path),
-#        },
-#        "material_import_settings": {
-#            "materials_filename": "{}/materials.json".format(co.training_path)
-#        },
-#    },
-#    }
-#    parameters_aux = KratosMultiphysics.Parameters(json.dumps(parameters_dict))
-#    model = KratosMultiphysics.Model()
-#    simulation = structural_mechanics_analysis.StructuralMechanicsAnalysis(
-#        model, parameters_aux
-#    )
-#    simulation.Initialize()
-#    modelpart = simulation._GetSolver().GetComputingModelPart()
-#    for elem in modelpart.Elements:
-#        nr_comp = len(
-#            elem.CalculateOnIntegrationPoints(
-#                KratosMultiphysics.GREEN_LAGRANGE_STRAIN_VECTOR, modelpart.ProcessInfo
-#            )[0]
-#        )
-#        break
-#    idx_vector = []
-#    count = 0
-#    for elem in modelpart.Elements:
-#        idx_vector.append(count)
-#        nr_ips = len(
-#            elem.CalculateOnIntegrationPoints(
-#                KratosMultiphysics.GREEN_LAGRANGE_STRAIN_VECTOR, modelpart.ProcessInfo
-#            )
-#        )
-#        count = count + nr_ips * nr_comp
-#    fname = parameters_reconstr["processes"]["my_processes"][0]["Parameters"][
-#        "global_index_filename"
-#    ].GetString()
-#    with open(fname, "w") as ofile:
-#        for idx in idx_vector:
-#            ofile.write("{}\n".format(idx))
-#    # end of generating auxiliar file
-#
-#    # Reconstruction
-#    model = KratosMultiphysics.Model()
-#    simulation = DisplacementReconstructionAnalysis(model, parameters_reconstr)
-#    # we replace .Run() by the code below so we can remove conditions
-#    # (and in the future replace elements, no we don need to modify model.mdpa)
-#    # simulation.Run()
-#    simulation.Initialize()
-#    modelpart = simulation._GetSolver().GetComputingModelPart()
-#
-#    for condition in modelpart.Conditions:
-#        condition.Set(KratosMultiphysics.TO_ERASE)
-#    modelpart.RemoveConditionsFromAllLevels(KratosMultiphysics.TO_ERASE)
-#
-#    # settings = KratosMultiphysics.Parameters("""
-#    #    {
-#    #        "element_name": "SmallDisplacementCustomElement3D8N",
-#    #        "condition_name": ""
-#    #    }
-#    #    """)
-#    # KratosMultiphysics.ReplaceElementsAndConditionsProcess(modelpart, settings).Execute()
-#
-#    simulation.RunSolutionLoop()
-#    simulation.Finalize()
+def load_energy_modes(modes_filename, reduced_ip_set, nr_modes):
+    modes = numpy.load(modes_filename)[:, :nr_modes]
+    reduced_modes = modes[reduced_ip_set, :]
+    logger.info(
+        "Modes matrix {} {} - Reduced modes matrix: {} {}".format(
+            numpy.shape(modes)[0],
+            numpy.shape(modes)[1],
+            numpy.shape(reduced_modes)[0],
+            numpy.shape(reduced_modes)[1],
+        )
+    )
+    return modes, reduced_modes
+
+
+def compute_reconstruction_system(
+    reduced_ip_set, reduced_ip_weights, energy_modes, reduced_energy_modes
+):
+    logger.info("Computing COMPLETE system")
+    logger.debug("-- A = reduced modes.T * weights * reduced modes")
+    reduced_ip_weights_diag = numpy.diag(reduced_ip_weights)
+
+    weighted_reduced_modes_transposed = numpy.dot(
+        reduced_energy_modes.T, reduced_ip_weights_diag
+    )
+    A = numpy.dot(weighted_reduced_modes_transposed, reduced_energy_modes)
+
+    logger.debug("-- checking A is not singular")
+    rankA = numpy.linalg.matrix_rank(A)
+    logger.debug("A: {}".format(numpy.shape(A)))
+    logger.debug("rank A: {}".format(numpy.linalg.matrix_rank(A)))
+    if rankA != numpy.shape(A)[0]:
+        logger.info("Matrix rank not complete (Too many ROC points?). Aborting.")
+        exit()
+    logger.debug("-- inverse A")
+    Ainv = numpy.linalg.inv(A)
+
+    logger.debug("-- modes * invA * modes.T * weights ")
+    aux_1 = numpy.dot(Ainv, weighted_reduced_modes_transposed)
+    aux_2 = numpy.dot(energy_modes, aux_1)
+    return aux_2
+
+
+def compute_system(rve_data_filename, energy_modes_filename, nr_modes):
+    """ docstrings """
+
+    with open(rve_data_filename) as f:
+        rve_data = json.load(f)
+    reduced_ip_set, reduced_ip_weights = load_rve_data(rve_data)
+    modes, reduced_modes = load_energy_modes(
+        energy_modes_filename, reduced_ip_set, nr_modes
+    )
+    A = compute_reconstruction_system(
+        reduced_ip_set, reduced_ip_weights, modes, reduced_modes
+    )
+    return A
+
+
+def reconstruct_damage_all(common):
+    """Computes data necessary for later reconstruction of the damage.
+    Skips computation if file exists and option 'reuse_existing_file' is set."""
+    for pair in common.config["reconstruction_pairs"]:
+        nmodes = pair[0]
+        npoints = pair[1]
+        fname = common.bases_path / "correlation_r_value_{}.npy".format(nmodes)
+        if common.skip_calculation(fname):
+            logger.info("{} exists. Skipping.".format(fname.name))
+            continue
+        reconstruct_damage(common, nmodes, npoints)
+    return
+
+
+def reconstruct_damage(common, nmodes, npoints):
+    rvalue_bases_fn = common.get_bases_fname(common.config["rvalue_name"])
+    rve_data_fn = common.datasets_path / common.rve_fname(nmodes, npoints)
+    A = compute_system(rve_data_fn, rvalue_bases_fn, nmodes)
+    fname = common.bases_path / "correlation_r_value_{}.npy".format(nmodes)
+    logger.info("Saving {}".format(fname))
+    numpy.save(fname, A)
+    return
