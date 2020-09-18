@@ -13,6 +13,7 @@ Utilities for HPRFE2 modal bases datasets
 USAGE:
     hprfe2 [-h]
     hprfe2 [-r PATH] init [help | <template> [-n]]
+    hprfe2 [-r PATH] init (help | <template> [-n])
     hprfe2 [-r PATH] deploy [help]
     hprfe2 [-r PATH] generate [help]
     hprfe2 [-r PATH] pack [help]
