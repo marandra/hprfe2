@@ -5,11 +5,6 @@ PACK: pending description here.
 import json
 from pathlib import Path
 import numpy
-
-# import KratosMultiphysics
-# from KratosMultiphysics.StructuralMechanicsApplication import (
-#    structural_mechanics_analysis,
-# )
 import logging
 from common import Common
 
