@@ -73,7 +73,7 @@ def reconstruct_displacement_all(common):
 
     for pair in common.config["reconstruction_pairs"]:
         nmodes = pair[0]
-        path = common.bases_path / "correlation_strain_{}.npy".format(nmodes)
+        path = common.bases_path / "correlation_strain_{}m.npy".format(nmodes)
         if common.skip_calculation(path):
             logger.info("{} exists. Skipping.".format(path.name))
             continue
@@ -97,7 +97,7 @@ def reconstruct_displacement(common, n_modes):
     strain_bases_fname = common.get_bases_fname("STRAIN")
     global_index_path = common.bases_path / "auxiliar_global_index"
     materials_fname = common.training_path / "materials.json"
-    correl_fname = common.bases_path / "correlation_strain_{}.npy".format(n_modes)
+    correl_fname = common.bases_path / "correlation_strain_{}m.npy".format(n_modes)
 
     params_reconstr_dict = {
         "problem_data": {
@@ -354,7 +354,7 @@ def reconstruct_damage_all(common):
     for pair in common.config["reconstruction_pairs"]:
         nmodes = pair[0]
         npoints = pair[1]
-        fname = common.bases_path / "correlation_r_value_{}.npy".format(nmodes)
+        fname = common.bases_path / "correlation_r_value_{}m_{}ip.npy".format(nmodes, npoints)
         if common.skip_calculation(fname):
             logger.info("{} exists. Skipping.".format(fname.name))
             continue
@@ -366,7 +366,7 @@ def reconstruct_damage(common, nmodes, npoints):
     rvalue_bases_fn = common.get_bases_fname(common.config["rvalue_name"])
     rve_data_fn = common.datasets_path / common.rve_fname(nmodes, npoints)
     A = compute_system(rve_data_fn, rvalue_bases_fn, nmodes)
-    fname = common.bases_path / "correlation_r_value_{}.npy".format(nmodes)
+    fname = common.bases_path / "correlation_r_value_{}m_{}ip.npy".format(nmodes, npoints)
     logger.info("Saving {}".format(fname))
     numpy.save(fname, A)
     return
