@@ -65,7 +65,9 @@ class Common:
             "reconstruction_pairs": [[20, 150], [30,200], ],
         }
         defaults_advanced = {
-            "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
+            # example option
+            #"rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
+            "rve_data_points_range_list": [],
             #
             "energy_name": "ENERGY_FREE",
             "energy_elastic_modes": 21,
