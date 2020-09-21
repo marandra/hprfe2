@@ -8,9 +8,7 @@ import numpy
 import logging
 from common import Common
 
-logging.basicConfig(
-    format="[%(asctime)s] %(message)s", datefmt="%H:%M:%S", level=logging.DEBUG
-)
+
 logger = logging.getLogger(__name__)
 
 
