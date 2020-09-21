@@ -1,69 +1,83 @@
 Quick start
 ===========
 
-In this section we will follow a step-by-step process to review the several stages involved in the generation of a sample material dataset.
-For this, we will create a project for the material ``COMPOSITE_01`` and sample a unit cell of this material using 9 trajectories.
+In this section we will follow a step-by-step process to review the several
+stages involved in the generation of a material dataset.
+For this, we will create a project for the material ``COMPOSITE_01`` and
+sample a unit cell of this material using 9 trajectories.
 
-To follow along, make sure the :ref:`installation <install>` is complete before proceding, no need to configure it just yet.
+To follow along, make sure the :ref:`installation <install>` is complete,
+and (recommended) that the location of the ``hprfe2`` executable is in the
+``$PATH`` environment variable before proceding.
 
 Let's get started.
 
-Sampling
---------
+Set up
+-------
 
 .. todo:: 
    Repeat all tutorial from a nested directory
 
 
-Create root directory for our material::
+Create root directory for our material:
 
-  >>> mkdir COMPOSITE_01
-  >>> cd COMPOSITE_01
+.. code-block:: console
+
+   $ mkdir COMPOSITE_01
+   $ cd COMPOSITE_01
 
 The next step generates an initial configuration file.
-Also, it creates a base directory structure and copies template case files
-from a specified location. For this tutorial, we will use the template files
-bundled with the installation files in the ``sample`` directory of this project::
+Also, it creates a base directory structure and copies template case files from
+a specified location.
+For this tutorial, we will use a test case bundled in the project files in the 
+``utils`` directory:
 
-  >>> pwd
-  COMPOSITE_01
-  >>> hprfe2 init .../hprfe2_project/sample/template_case
-  Written configuration file configuration.json.
-  Created sampling directory sampling
+.. code-block:: console
+
+  $ hprfe2 init /path/to/hprfe2_project/utils/template_case
+  Created directory sampling
+  Created directory bases
+  Created directory datasets
+  Written configuration file config.json.
   Template files copied to sampling directory
-  >>> ls
-  configuration.json sampling
-  >>> ls sampling
+  $ ls
+  bases  config.json  datasets  hprfe2.log  sampling
+  $ ls sampling
   MainKratos.py   model.mdpa              ProjectParameters_quiet.json
-  materials.json  ProjectParameters.json  _training_strain_set.dat
+  materials.json  ProjectParameters.json  strain_set.dat
 
-The script also created a ``sampling`` directory and populate it with our
-Kratos case, which includes ``MainKratos.py``, ``model.mdpa`` (unit cell
-discretization), ``materials.json`` (COMPOSITE_01 constituve model and
-material parameters), ``ProjectParameters.json`` (case configuration
-for Kratos), and ``strain_set.dat`` with the list of strains for the
-sampling process.
+The script creates the required directories, and
+populate the ``sampling`` directory with our Kratos case, which includes
+``MainKratos.py``, ``model.mdpa`` (unit cell discretization), 
+``materials.json`` (COMPOSITE_01 constituve model and material parameters),
+``ProjectParameters.json`` (case configuration for Kratos),
+and ``strain_set.dat`` with the list of strains for the sampling process.
 
-The configuration file contains the at least following needed parameters:
+The configuration file contains the defautl values for the most frequently
+set parameters:
 
 .. code-block:: json
-  :emphasize-lines: 4,8
 
     {
       "config_data": {
-        "cases_test_dataset": [ 5 ],
-        "rve_data_points": [ 200, 400 ],
-        "rve_data_points_range_list": [[100, 1600, 20], [1600, 2600, 100]],
+        "rve_data_points": [150, 200],
         "rve_data_points_rom": true,
-        "rve_data_modes": [20, 30, 40, 50, 60],
-        "strain_svd_cutoff": 0.1,
+        "rve_data_modes": [20, 30],
+        "reconstruction_pairs": [[20, 150], [30, 200]]
       }
     }
 
+No need to modify it just yet, we will continue the tutorial with the default
+values.
 
-In the following step, we generate the sampling directories::
+Sampling
+--------
 
-  >>> hprfe2 deploy
+In the following step, we generate the sampling directories:
+
+.. code-block:: console
+
+  $ hprfe2 deploy
   case_0 [1.0, 0.0, 0.0, 0.0, 0.0, 0.0]
   case_1 [0.0, 1.0, 0.0, 0.0, 0.0, 0.0]
   case_2 [0.0, 0.0, 1.0, 0.0, 0.0, 0.0]
@@ -79,7 +93,10 @@ and populates them with the Kratos case.
 The only difference between them is the strain tensor value in their respective
 ``ProjectParameters.json`` files.
 
-At this point, we should have the following file structure (here showing only ``case_0``, as it is the same for the other directories)::
+At this point, we should have the following file structure (here showing only
+``case_0``, as it is the same for the other directories):
+
+.. code-block:: console
 
   COMPOSITE_01
   ├── configuration.json
@@ -108,34 +125,127 @@ At this point, we should have the following file structure (here showing only ``
 files in this directories for more complex use.)
 
 We must now run every case.
-In this tutorial, we just enter to each directory and run Kratos::
+In this tutorial, we just enter to each directory and run Kratos:
 
-  >>> pwd
+.. code-block:: console
+
+  $ pwd
   COMPOSITE_01
-  >>> cd sampling
-  >>> cd case_0
-  >>> python3 MainKratos.py
-  >>> cd ..
-  >>> cd case_1
-  >>> python3 MainKratos.py
-  >>> cd ..
+  $ cd sampling
+  $ cd case_0
+  $ python3 MainKratos.py
+  ... (Kratos output omitted) ...
+  $ cd ..
+  $ cd case_1
+  $ python3 MainKratos.py
+  ... (Kratos output omitted) ...
+  $ cd ..
   ...
 
-but in real-life cases we should have our own script for managing the jobs (more on this later).
+but in real-life cases we should have our own script for managing the jobs 
+(more on this later).
 
-Basis generation
+Bases generation
 ----------------
-.. note::
-    Add configuration option here.
 
-Aca una muestra de codigo::
+Now we generate the modal bases and the ROC integration points reduced sets,
+as well as other auxiliar files:
 
-  >>> python hola.py
-  Hola.
-  >>> ls
-  lsout
+.. code-block:: console
+
+  $ hprfe2 generate
+  ... (dense output omitted) ...
+
+This step will write output files in the ``bases`` directory:
+
+.. code-block:: console
+
+  $ ls bases
+  bases_ENERGY_FREE_284m.npy
+  bases_R_VALUE_31m.npy
+  bases_STRAIN_FLUCTUANT_255m.npy
+  roc_150ip
+  roc_200ip
+  roc_ROMip
+  sv_ENERGY_FREE_elastic.dat
+  sv_ENERGY_FREE_inelastic.dat
+  sv_R_VALUE_elastic.dat
+  sv_R_VALUE_inelastic.dat
+  sv_STRAIN_FLUCTUANT_elastic.dat
+  sv_STRAIN_FLUCTUANT_inelastic.dat
+
+``bases_STRAIN_FLUCTUANT_255m.npy``,
+``bases_ENERGY_FREE_284m.npy``,
+``bases_R_VALUE_31m.npy``
+are modal bases for strain, energy and r-value, respectively, with 
+``sv_*.dat`` files being the modes' corresponding singular values.
+``roc_150ip``, ``roc_200ip`` are the reduced sets of 150 and 200
+integration points, and ``roc_ROMip`` being the complete set for ROM analysis
+(as required in the configuration file).
 
 Datasets generation
 -------------------
 
+In this step, we will create the datasets for all the combinations of number
+of points (150, 200, ROM) and modes (20, 30) required in the configuration.
 
+.. code-block:: console
+
+  $ hprfe2 pack
+  ...
+  Generating datasets/rve_20m_150ip.json
+  Generating datasets/rve_30m_150ip.json
+  Generating datasets/rve_20m_200ip.json
+  Generating datasets/rve_30m_200ip.json
+  Generating datasets/rve_20m_ROMip.json
+  Generating datasets/rve_30m_ROMip.json
+
+The output files are written in the ``datasets`` directory:
+
+.. code-block:: console
+
+  $ ls datasets
+  rve_20m_150ip.json
+  rve_20m_200ip.json
+  rve_20m_ROMip.json
+  rve_30m_150ip.json
+  rve_30m_200ip.json
+  rve_30m_ROMip.json
+
+Reconstruction data
+------------------------------
+
+The following step is generate the correlation matrices required for later
+reconstruction of RVE fields, for the combination of modes and points specified
+in the configuration:
+
+.. code-block:: json
+  :emphasize-lines: 6
+
+    {
+      "config_data": {
+        "rve_data_points": [150, 200],
+        "rve_data_points_rom": true,
+        "rve_data_modes": [20, 30],
+        "reconstruction_pairs": [[20, 150], [30, 200]]
+      }
+    }
+
+.. code-block:: console
+
+  $ hprfe2 resources
+  ... (dense output omitted) ...
+
+Besides the previous files in the ``bases`` directory, we now find the
+correlation matrices 
+
+.. code-block:: console
+
+  $ ls datasets
+  ...
+  correlation_r_value_20m_150ip.npy
+  correlation_r_value_20m_200ip.npy
+  correlation_r_value_30m_200ip.npy
+  correlation_strain_20m.npy       
+  correlation_strain_30m.npy       
+  ...

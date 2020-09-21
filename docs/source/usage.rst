@@ -3,32 +3,55 @@
 Install
 =======
 
-HPRFE2 needs to be installed inside a previous Kratos installation.
+In order to install hprfe2, you need to clone its git repository
+(here assuming it is installed in the ``~/apps/ directory)``::
 
-.. todo::
-        Make sure to add definition of required environment variables.
+   >>> cd ~/apps
+   >>> git clone https://github.com/marandra/hprfe2.git
 
-.. todo::
-        Add reference to Kratos installation.
+For convenience, make sure ``~/apps/hprfe2/hprfe2/`` is in your
+``$PATH`` environment
 
-.. note::
-        Assuming Kratos already installed
+.. tip::
+   There is a simple tab-completion bash script located in the ``utils``
+   directory that you can source for enabling tab-completion (in bash):
 
-Basic steps::
+   ``echo "source $HOME/apps/hprfe2/utils/hprfe2-cmopletions.bash" >> ~HOME/.bashrc``
 
-   >>> cd /path/to/Kratos/applications
-   >>> git checkout MultiscaleROMApplication
-   >>> cd MultiscaleROMApplication
+HPRFE2 dependencies
+-------------------
 
-Using venv
-----------
+HPRFE2 requires a working installation of KratosMultiphysics compiled with 
+MultiscaleROMApplication.
 
-It is more convenient to create a virtual environment::
-    >>> python -m pyvenv venv
-    >>> source venv/bin/activate.sh
-    >>> pip install -r requirements.txt
+KratosMultiphysics
+~~~~~~~~~~~~~~~~~~
 
- 
+For KratosMultiphysics refer to is
+`installation page <https://github.com/KratosMultiphysics/Kratos/blob/master/INSTALL.md>`_.
+
+MultiscaleROMApplication
+~~~~~~~~~~~~~~~~~~~~~~~~
+
+Clone the git repository::
+
+    >>> cd ~/apps/Kratos/applications
+    >>> git clone https://github.com/marandra/MultiscaleROMApplication.git
+
+Add the following line to ...::
+
+    To be completed...
+    ...
+    ...
+
+and compile Kratos.
+
+Check the installation::
+    >>> python
+    >>> import KratosMultiphysics
+    >>> import KratosMultiphysics.StructuralMechanicsApplication
+    >>> import KratosMultiphysics.MultiscaleROMApplication
+
 
 Usage
 =====
@@ -53,7 +76,6 @@ This step generates a ``configuration.json`` similar to::
         "rve_data_points_range_list": [[100, 1600, 20], [1600, 2600, 100]],
         "rve_data_points_rom": true,
         "rve_data_modes": [20, 30, 40, 50, 60],
-        "strain_svd_cutoff": 0.1,
       }
     }
     
