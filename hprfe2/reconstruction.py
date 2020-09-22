@@ -87,7 +87,7 @@ def reconstruct_displacement_all(common):
         except:
             pass
     else:
-    global_index_path.unlink(missing_ok=True)
+        global_index_path.unlink(missing_ok=True)
 
     return
 
@@ -279,7 +279,7 @@ def reconstruct_displacement(common, n_modes):
         except:
             pass
     else:
-    global_index_path.unlink(missing_ok=True)
+        global_index_path.unlink(missing_ok=True)
 
     return
 
