@@ -59,7 +59,7 @@ def create_properties_file(m_prop, c_prop, t_prop, quiet=False):
     c_prop.write_text(json.dumps(model_props, indent=4))
 
 
-def create_case_dir(rve, training, offline):
+def create_case_dir(rve, training, dataset):
 
     """
     Files and dirs structure:
@@ -76,7 +76,7 @@ def create_case_dir(rve, training, offline):
     # adapt and copy materials file
     src = rve.parent.parent / "macro_materials.json"
     dest = rve / "macro_materials.json"
-    rve_data_path = offline / "rve{}.json".format(rve.name)
+    rve_data_path = dataset / "rve{}.json".format(rve.name)
     materials = json.loads(src.read_text())
     materials["properties"][0]["Material"]["constitutive_law"]["Parameters"][
         "rve_data_filename"
@@ -138,9 +138,9 @@ def run(common):
                 rve_path = (
                     common.multiscale_path / common.case_name(c) / "_{}m_{}ip".format(m, p)
                 ).resolve()
-                create_case_dir(rve_path, common.training_path, common.bases_path)
+                create_case_dir(rve_path, common.training_path, common.datasets_path)
                 create_launch_script(rve_path)
-                logger.info(rve_path.parent.name, rve_path.name)
+                logger.info("{} {}".format(rve_path.parent.name, rve_path.name))
 
 #######################################
 # main

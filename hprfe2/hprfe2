@@ -97,22 +97,28 @@ def validate():
     return
 
 
-def init(template_path, params_quiet_flag):
+def init(t_sampling_path, t_validation_path):
     """\
+init <templ_sampling> <templ_validation>
+
+options:
+
+    templ_sampling     path to a template sampling case files
+    templ_validation   path to a template validation case files
+
 Writes and creates initial files and directory structure at root path.
 Root path can be passed when invoking the command, if missing the current
 directory (".") is assumed.
 
     - Checks if configurarion file is present
     - If missing, writes a file with default values
-    - Checks template case files exists (including no-output parameters file
-      if params_quiet option is set)
-    - Creates sampling directory (location passed as argument)
+    - Checks template case files exists
+    - Creates sampling directory
     - Copies template files to sampling directory
 """
 
     # Create basic dir structure
-    for p in [C.training_path, C.bases_path, C.datasets_path]:
+    for p in [C.training_path, C.bases_path, C.datasets_path, C.multiscale_path]:
         if not p.exists():
             p.mkdir()
             logger.info("Created directory {}".format(p))
@@ -126,29 +132,45 @@ directory (".") is assumed.
         C.dump_config(C.config_file)
         logger.info("Written configuration file {}.".format(C.config_file))
 
-    # Check that Kratos case files exist
+    # Check that Kratos SAMPLING case files exist
     paths = [
-        template_path / "MainKratos.py",
-        template_path / "model.mdpa",
-        template_path / "materials.json",
-        template_path / "ProjectParameters.json",
-        template_path / C.config["training_strain_fname"],
+        t_sampling_path / "MainKratos.py",
+        t_sampling_path / "model.mdpa",
+        t_sampling_path / "materials.json",
+        t_sampling_path / "ProjectParameters.json",
+        t_sampling_path / C.config["training_strain_fname"],
+        t_sampling_path / "ProjectParameters_quiet.json",
     ]
-    if params_quiet_flag:
-        paths.append(
-            template_path / "ProjectParameters_quiet.json",
-        )
+
+    for p in paths:
+        if not p.exists():
+            logger.error("Missing sampling template file {}. Aborting.".format(p))
+            exit()
+
+    # Copy template files to SAMPLING directory
+    for src in paths:
+        dest = C.training_path / src.name
+        dest.write_text(src.read_text())
+    logger.info("Template files copied to sampling directory")
+
+    # Check that Kratos VALIDATION case files exist
+    paths = [
+        t_validation_path / "MainKratos.py",
+        t_validation_path / "macro_model.mdpa",
+        t_validation_path / "macro_materials.json",
+        t_validation_path / "ProjectParameters.json",
+    ]
 
     for p in paths:
         if not p.exists():
             logger.error("Missing template file {}. Aborting.".format(p))
             exit()
 
-    # Copy template files to sampling directory
+    # Copy template files to VALIDATION directory
     for src in paths:
-        dest = C.training_path / src.name
+        dest = C.multiscale_path / src.name
         dest.write_text(src.read_text())
-    logger.info("Template files copied to sampling directory")
+    logger.info("Template files copied to validation directory")
 
     return
 
@@ -261,7 +283,7 @@ if __name__ == "__main__":
     if ARGS['<command>'] == 'init':
         if "help" in ARGS['<args>']:
             exit(init.__doc__)
-        init(Path(ARGS["<args>"][0]), True)
+        init(Path(ARGS["<args>"][0]), Path(ARGS["<args>"][1]))
     elif ARGS['<command>'] == 'deploy':
         if "help" in ARGS['<args>']:
             exit(deploy.__doc__)
