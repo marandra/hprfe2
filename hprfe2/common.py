@@ -58,11 +58,11 @@ class Common:
 
         defaults_basic = {
             # most frequently set
-            "cases_test_dataset": [0],
-            "rve_data_points": [ 200, 150, ],
+            "validation_dataset": [0],
+            "rve_data_points": [100, 200],
             "rve_data_points_rom": True,
             "rve_data_modes": [20, 30],
-            "reconstruction_pairs": [[20, 150], [30,200], ],
+            "reconstruction_pairs": [[20, 100], [30,200], ],
         }
         defaults_advanced = {
             # example option
@@ -101,7 +101,7 @@ class Common:
             "correl_matrix_strain_pattern": "correlation_strain_{}.npy",
             "correl_matrix_damage_pattern": "correlation_r_value_{}.npy",
             # multiscale files stuff
-            "multiscale_path": "multiscale_1ip",
+            "multiscale_path": "validation",
             # other files stuff
         }
 

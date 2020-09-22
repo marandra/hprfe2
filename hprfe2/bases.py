@@ -334,7 +334,7 @@ def run(common):
     training_set = []
     for c in common.training_path.glob(common.config["case_path_pattern"].format("*")):
         c_id = int(c.name.split("_")[1])
-        if c_id in common.config["cases_test_dataset"]:
+        if c_id in common.config["validation_dataset"]:
             logger.info("Removing case {} from training dataset".format(c.name))
             continue
         training_set.append(c)
