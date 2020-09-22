@@ -9,10 +9,9 @@ Usage:
     hprfe2 [-v | -vv] [-r PATH] <command> [<args>...]
 
 Options:
-    -h --help          Print this help message and exit
-    -V --version       Print version information and exit
-    -v                 Verbose output (-v verbose, -vv debug)
-
+    -h --help             Print this help message and exit
+    -V --version          Print version information and exit
+    -v                    Verbose output (-v verbose, -vv debug)
     -r PATH --root=PATH   Specify the root path of the project, where the
                           configuration file must be located [default: .]
 
@@ -292,7 +291,7 @@ if __name__ == "__main__":
         if "help" in ARGS['<args>']:
             exit(multiscale.__doc__)
         validate()
-        mutliscale.run()
+        multiscale.run(C)
     elif ARGS['<command>'] in ['help', None]:
         exit(__doc__)
     else:

@@ -132,13 +132,13 @@ rm {}
 
 
 def run(common):
-    for c in co.context["validation_dataset"]:
-        for m in co.context["rve_data_modes"]:
-            for p in co.ip_subsets:
+    for c in common.config["validation_dataset"]:
+        for m in common.config["rve_data_modes"]:
+            for p in common.ip_subsets:
                 rve_path = (
-                    co.multiscale_path / co.case_name(c) / "_{}m_{}ip".format(m, p)
+                    common.multiscale_path / common.case_name(c) / "_{}m_{}ip".format(m, p)
                 ).resolve()
-                create_case_dir(rve_path, co.training_path, co.offline_path)
+                create_case_dir(rve_path, common.training_path, common.bases_path)
                 create_launch_script(rve_path)
                 logger.info(rve_path.parent.name, rve_path.name)
 
