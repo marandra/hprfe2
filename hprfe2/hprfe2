@@ -22,6 +22,7 @@ Commands:
     generate    Generate bases and IP sets
     pack        Create dataset files
     resources   Create datasets for fields reconstruction
+    validate    Generate 1ip-multiscale validation cases
 
 See 'hprfe2 <command> help' for more information on a specific command.
 """
@@ -47,6 +48,7 @@ import bases
 import roc
 import pack
 #import reconstruction
+import multiscale
 
 ## add verbosity level
 #logging.VERBOSE = 15  # between DEBUG and INFO
@@ -286,6 +288,11 @@ if __name__ == "__main__":
             exit("Reconstruction help: add docs here")
         validate()
         resources()
+    elif ARGS['<command>'] == 'validate':
+        if "help" in ARGS['<args>']:
+            exit(multiscale.__doc__)
+        validate()
+        mutliscale.run()
     elif ARGS['<command>'] in ['help', None]:
         exit(__doc__)
     else:
