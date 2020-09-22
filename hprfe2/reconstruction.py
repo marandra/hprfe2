@@ -63,6 +63,7 @@ class DisplacementReconstructionAnalysis(AnalysisStage):
 #
 def reconstruct_displacement_all(common):
     ### workaround until we can make Kratos change the elemen type
+    global_index_path = common.bases_path / "auxiliar_global_index"
     model_custom_path = common.bases_path / "model_custom.mdpa"
     model_original_text = (common.training_path / "model.mdpa").read_text()
     model_custom_text = model_original_text.replace(
