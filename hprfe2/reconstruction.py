@@ -79,12 +79,15 @@ def reconstruct_displacement_all(common):
             continue
         reconstruct_displacement(common, nmodes)
 
-    # missing_ok appears in Python >3.8
-    #model_custom_path.unlink(missing_ok=True)
-    try:
-        model_custom_path.unlink()
-    except:
-        pass
+    # Version-dependent code. To be removed.
+    import sys
+    if sys.version_info < (3, 8, 0):
+        try:
+            global_index_path.unlink()
+        except:
+            pass
+    else:
+    global_index_path.unlink(missing_ok=True)
 
     return
 
@@ -268,12 +271,15 @@ def reconstruct_displacement(common, n_modes):
     simulation.RunSolutionLoop()
     simulation.Finalize()
 
-    # missing_ok appears in Python >3.8
-    #global_index_path.unlink(missing_ok=True)
-    try:
-        global_index_path.unlink()
-    except:
-        pass
+    # Version-dependent code. To be removed.
+    import sys
+    if sys.version_info < (3, 8, 0):
+        try:
+            global_index_path.unlink()
+        except:
+            pass
+    else:
+    global_index_path.unlink(missing_ok=True)
 
     return
 
