@@ -2,4 +2,3 @@ docopt
 numpy
 h5py
 sklearn
-meshio
