@@ -52,6 +52,17 @@ Check the installation::
     >>> import KratosMultiphysics.StructuralMechanicsApplication
     >>> import KratosMultiphysics.MultiscaleROMApplication
 
+Python modules
+~~~~~~~~~~~~~~
+
+Required python modules are in ``requirementes.txt``.
+Check that they are intalled, or install them if missing::
+    $python -m pip install -r requirements.txt install --user
+
+In case you prefer to use a virtual environment, to keep things tidy::
+    $python -m venv venv-hprfe2
+    $source venv-hprfe3/bin/activate
+    $python -m pip install -r requirements.txt install
 
 Usage
 =====

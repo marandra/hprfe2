@@ -15,10 +15,6 @@ Let's get started.
 Set up
 -------
 
-.. todo:: 
-   Repeat all tutorial from a nested directory
-
-
 Create root directory for our material:
 
 .. code-block:: console
