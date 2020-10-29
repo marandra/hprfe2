@@ -30,14 +30,18 @@ For this tutorial, we will use a test case bundled in the project files in the
 
 .. code-block:: console
 
-  $ hprfe2 init /path/to/hprfe2_project/utils/template_case
+  $ hprfe2 init \
+     /path/to/hprfe2_project/utils/template_sampling_case \
+     /path/to/hprfe2_project/utils/template_validation_case
   Created directory sampling
   Created directory bases
   Created directory datasets
+  Created directory validation
   Written configuration file config.json.
   Template files copied to sampling directory
+  Template files copied to validation directory
   $ ls
-  bases  config.json  datasets  hprfe2.log  sampling
+  bases  config.json  datasets  hprfe2.log  sampling  validation
   $ ls sampling
   MainKratos.py   model.mdpa              ProjectParameters_quiet.json
   materials.json  ProjectParameters.json  strain_set.dat
@@ -56,10 +60,10 @@ set parameters:
 
     {
       "config_data": {
-        "rve_data_points": [150, 200],
+        "rve_data_points": [100, 200],
         "rve_data_points_rom": true,
         "rve_data_modes": [20, 30],
-        "reconstruction_pairs": [[20, 150], [30, 200]]
+        "reconstruction_pairs": [[20, 100], [30, 200]]
       }
     }
 
@@ -96,12 +100,14 @@ At this point, we should have the following file structure (here showing only
 
   COMPOSITE_01
   ├── configuration.json
-  └── training
+  └── sampling
       ├── case_0
       │   ├── MainKratos.py
       │   ├── materials.json
       │   ├── model.mdpa
-      │   └── ProjectParameters.json
+      │   ├── model.mdpa
+      │   ├── ProjectParameters.json
+      │   └── ProjectParameters_quiet.json
       ├── case_0
       ├── case_1
       ├── case_2
@@ -115,6 +121,7 @@ At this point, we should have the following file structure (here showing only
       ├── materials.json
       ├── model.mdpa
       ├── ProjectParameters.json
+      ├── ProjectParameters_quiet.json
       └── strain_set.dat
 
 (only the files relevant to this turorial are shown, there are more auxiliar

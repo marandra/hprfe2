@@ -26,7 +26,6 @@ Commands:
 See 'hprfe2 <command> help' for more information on a specific command.
 """
 # TODO
-# update python to 3.8 in acuario
 # get rid of Kratos banner!
 # change file modes 0644
 # change launchers file mode 755 and add env
@@ -99,9 +98,11 @@ def validate():
 
 def init(t_sampling_path, t_validation_path):
     """\
-init <templ_sampling> <templ_validation>
 
-options:
+Usage:
+    hprfe2 init <templ_sampling> <templ_validation>
+
+Arguments:
 
     templ_sampling     path to a template sampling case files
     templ_validation   path to a template validation case files
@@ -115,6 +116,7 @@ directory (".") is assumed.
     - Checks template case files exists
     - Creates sampling directory
     - Copies template files to sampling directory
+    - Copies template files to validation directory
 """
 
     # Create basic dir structure
