@@ -3,7 +3,7 @@ Quick start
 
 In this section we will follow a step-by-step process to review the several
 stages involved in the generation of a material dataset.
-For this, we will create a project for the material ``COMPOSITE_01`` and
+For this, we will create a project for a material ``COMPOSITE_01`` and
 sample a unit cell of this material using 9 trajectories.
 
 To follow along, make sure the :ref:`installation <install>` is complete,
@@ -30,9 +30,7 @@ For this tutorial, we will use a test case bundled in the project files in the
 
 .. code-block:: console
 
-  $ hprfe2 init \
-     /path/to/hprfe2_project/utils/template_sampling_case \
-     /path/to/hprfe2_project/utils/template_validation_case
+  $ hprfe2 init ~/apps/hprfe2/utils/sampling_case ~/apps/hprfe2/utils/validation_case
   Created directory sampling
   Created directory bases
   Created directory datasets
@@ -105,16 +103,11 @@ At this point, we should have the following file structure (here showing only
       │   ├── MainKratos.py
       │   ├── materials.json
       │   ├── model.mdpa
-      │   ├── model.mdpa
       │   ├── ProjectParameters.json
       │   └── ProjectParameters_quiet.json
       ├── case_0
       ├── case_1
-      ├── case_2
-      ├── case_3
-      ├── case_4
-      ├── case_5
-      ├── case_6
+      ├── ...
       ├── case_7
       ├── case_8
       ├── MainKratos.py
@@ -124,8 +117,8 @@ At this point, we should have the following file structure (here showing only
       ├── ProjectParameters_quiet.json
       └── strain_set.dat
 
-(only the files relevant to this turorial are shown, there are more auxiliar
-files in this directories for more complex use.)
+(only the files relevant to this turorial are shown, there are also auxiliar
+files in these directories for more complex use.)
 
 We must now run every case.
 In this tutorial, we just enter to each directory and run Kratos:
