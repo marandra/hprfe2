@@ -26,7 +26,7 @@ The next step generates an initial configuration file.
 Also, it creates a base directory structure and copies template case files from
 a specified location.
 For this tutorial, we will use a test case bundled in the project files in the 
-``utils`` directory:
+``utils`` directory, assuming a project directory ``~/apps/hprfe2``:
 
 .. code-block:: console
 
@@ -118,7 +118,7 @@ At this point, we should have the following file structure (here showing only
       └── strain_set.dat
 
 (only the files relevant to this turorial are shown, there are also auxiliar
-files in these directories for more complex use.)
+files in these directories for more complex use cases.)
 
 We must now run every case.
 In this tutorial, we just enter to each directory and run Kratos:
