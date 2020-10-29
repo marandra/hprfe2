@@ -160,7 +160,7 @@ This step will write output files in the ``bases`` directory:
   bases_ENERGY_FREE_284m.npy
   bases_R_VALUE_31m.npy
   bases_STRAIN_FLUCTUANT_255m.npy
-  roc_150ip
+  roc_100ip
   roc_200ip
   roc_ROMip
   sv_ENERGY_FREE_elastic.dat
@@ -175,7 +175,7 @@ This step will write output files in the ``bases`` directory:
 ``bases_R_VALUE_31m.npy``
 are modal bases for strain, energy and r-value, respectively, with 
 ``sv_*.dat`` files being the modes' corresponding singular values.
-``roc_150ip``, ``roc_200ip`` are the reduced sets of 150 and 200
+``roc_100ip``, ``roc_200ip`` are the reduced sets of 100 and 200
 integration points, and ``roc_ROMip`` being the complete set for ROM analysis
 (as required in the configuration file).
 
@@ -183,14 +183,14 @@ Datasets generation
 -------------------
 
 In this step, we will create the datasets for all the combinations of number
-of points (150, 200, ROM) and modes (20, 30) required in the configuration.
+of points (100, 200, ROM) and modes (20, 30) required in the configuration.
 
 .. code-block:: console
 
   $ hprfe2 pack
   ...
-  Generating datasets/rve_20m_150ip.json
-  Generating datasets/rve_30m_150ip.json
+  Generating datasets/rve_20m_100ip.json
+  Generating datasets/rve_30m_100ip.json
   Generating datasets/rve_20m_200ip.json
   Generating datasets/rve_30m_200ip.json
   Generating datasets/rve_20m_ROMip.json
@@ -201,10 +201,10 @@ The output files are written in the ``datasets`` directory:
 .. code-block:: console
 
   $ ls datasets
-  rve_20m_150ip.json
+  rve_20m_100ip.json
   rve_20m_200ip.json
   rve_20m_ROMip.json
-  rve_30m_150ip.json
+  rve_30m_100ip.json
   rve_30m_200ip.json
   rve_30m_ROMip.json
 
@@ -220,10 +220,10 @@ in the configuration:
 
     {
       "config_data": {
-        "rve_data_points": [150, 200],
+        "rve_data_points": [100, 200],
         "rve_data_points_rom": true,
         "rve_data_modes": [20, 30],
-        "reconstruction_pairs": [[20, 150], [30, 200]]
+        "reconstruction_pairs": [[20, 100], [30, 200]]
       }
     }
 
@@ -239,8 +239,7 @@ correlation matrices
 
   $ ls datasets
   ...
-  correlation_r_value_20m_150ip.npy
-  correlation_r_value_20m_200ip.npy
+  correlation_r_value_20m_100ip.npy
   correlation_r_value_30m_200ip.npy
   correlation_strain_20m.npy       
   correlation_strain_30m.npy       

@@ -24,6 +24,7 @@ Commands:
     validate    Generate 1ip-multiscale validation cases
 
 See 'hprfe2 <command> help' for more information on a specific command.
+
 """
 # TODO
 # get rid of Kratos banner!
@@ -100,12 +101,12 @@ def init(t_sampling_path, t_validation_path):
     """\
 
 Usage:
-    hprfe2 init <templ_sampling> <templ_validation>
+    hprfe2 init <template_sampling_path> <template_validation_path>
 
 Arguments:
 
-    templ_sampling     path to a template sampling case files
-    templ_validation   path to a template validation case files
+    template_sampling_path     path to a template sampling case files
+    template_validation_path   path to a template validation case files
 
 Writes and creates initial files and directory structure at root path.
 Root path can be passed when invoking the command, if missing the current
