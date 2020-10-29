@@ -13,7 +13,7 @@ For convenience, make sure ``~/apps/hprfe2/hprfe2/`` is in the
 ``$PATH`` environment variable.
 
 ..
-.. tip::
+   tip::
      There is a simple tab-completion bash script located in the ``utils``
      directory that you can source for enabling tab-completion (in bash):
   
