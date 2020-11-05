@@ -119,13 +119,8 @@ def create_launchers(path):
 ##SBATCH --time=????
 
 export OMP_NUM_THREADS=1
-printf -v ID "%02d\n" $SLURM_ARRAY_TASK_ID
-TRAJECTORYPATH=$PWD/case_$ID
-cd $TRAJECTORYPATH
-# TODO: update the command (output time.dat and time_quiet.dat)
-time python3 MainKratos.py
-cd ..
-mv slurm-$SLURM_ARRAY_JOB_ID\_$SLURM_ARRAY_TASK_ID.out $TRAJECTORYPATH
+printf -v ID "%02d" $SLURM_ARRAY_TASK_ID
+bash tmp_case_${ID}.bash
 """
     (path / fname).write_text(script)
 
@@ -145,7 +140,7 @@ done
     script = """\
 #!/bin/bash
 
-(for SCRIPT in tmp_*.bash
+for SCRIPT in tmp_*.bash
 do
   bash $SCRIPT
   sleep 0.05
