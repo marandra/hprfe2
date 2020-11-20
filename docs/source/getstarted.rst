@@ -249,11 +249,11 @@ correlation matrices
 --------------------------
 
 The ``validate`` directory is created and populated at the initialization step.
-The directory contains template files for the simulation of a macro consisting in 
-a 1-ip tetrahedron, using the reduced datasets computed previously.
+The directory contains template files for the simulation of a macrostructure
+consisting in a 1-ip tetrahedron, using the reduced datasets computed previously.
 It reproduces the strain state of the validation cases selected in the configuration file.
 
-The ``validate`` module creates a files structure for testing each dataset generated.
+The ``validate`` module creates a file structure for testing each dataset generated.
 
 .. code-block:: console
 
@@ -265,7 +265,7 @@ The ``validate`` module creates a files structure for testing each dataset gener
   case_0 _30m_200ip
   case_0 _30m_ROMip
 
-The file structure will be like this:
+The file structure will be:
 
 .. code-block:: console
 
@@ -294,17 +294,17 @@ The file structure will be like this:
   └── tmp_case_0_30m_ROMip.bash
 
   
-The final step in at this stage is just to run the desired script(s).
-In this case we will test the smaller case:
+The final step in at this stage is to run the desired script(s).
+In this case we will test the smaller (and faster) case:
 
 .. code-block:: console
 
   $ cd validation
   $ bash tmp_case_0_20m_100ip.bash
-  ... (kratos output ommited) ...
+  ... (dense output ommited) ...
 
-All the generetaed files will be inside the corresponding directory.
-In this case:
+All the generated files will be inside the corresponding directory.
+For this case:
 
 .. code-block:: console
 
@@ -324,11 +324,13 @@ In this case:
   time_quiet.dat
   vtk_output
 
-being ``homogenized_stress.dat`` homogenized strain-stress data, ``Multiscale_0.post.*`` GiD
-visualization files, ``outMainKratos`` Kratos output, ``vtk_ouput`` Paraview
-visualization files, ``time.dat`` time information, and ``*_quiet`` are the 
-equivalent files but run without writing output, useful for speedup measurements.
-
+being ``homogenized_stress.dat`` homogenized strain-stress data,
+``Multiscale_0.post.*`` GiD visualization files,
+``outMainKratos`` Kratos output,
+``vtk_ouput`` Paraview visualization files,
+``time.dat`` time information,
+and ``*_quiet`` are the equivalent files but run without writing output,
+useful for speedup measurements.
 
 Reconstruction of fields
 ------------------------
@@ -338,17 +340,27 @@ Reconstruction of fields
     The following are temporary directions using transition scripts.
 
 The reconstruction of the RVE fields requires datasets for each validation case.
-The script will look for the required files in the ``resources`` directory, located
-in the ``case_0`` directory (in this tutorial).
-Resources dataset are model and material RVE data, reduced dataset, strain bases, strain and damage variable correlation matrices.  Resources must by collected manually for now.
+The script will look for the required files in the ``resources`` directory,
+located in the ``case_0`` directory (in this tutorial).
+Resources dataset are: model and material RVE data, reduced dataset,
+strain bases, strain and damage variable correlation matrices.
+
+Resources must by collected manually for now.
 
 .. code-block:: console
 
   $ mkdir case_0/resources
-  $ cp ../sampling/model.mdpa ../sampling/materials.json ../datasets/rve_20m_100ip.json ../bases/bases_STRAIN_FLUCTUANT_255m.npy ../bases/correlation_strain20m.npy ../bases/correlation_r_value_20m_100ip.npy case_0/resources
+  $ cp ../sampling/model.mdpa  case_0/resources
+  $ cp ../sampling/materials.json case_0/resources
+  $ cp ../datasets/rve_20m_100ip.json case_0/resources
+  $ cp ../bases/bases_STRAIN_FLUCTUANT_255m.npy case_0/resources
+  $ cp ../bases/correlation_strain20m.npy case_0/resources
+  $ cp ../bases/correlation_r_value_20m_100ip.npy case_0/resources
 
-We now ``cd`` inte out case's directory and run the reconstruction script, which if located in the ``offline_scrips`` directory of the ``MultiscaleROMApplication`` project.
-The script takes the project's root path, the runtime generated dataset, and the resources file location.
+We now ``cd`` into our case's directory and run the reconstruction script,
+which if located in the ``offline_scrips`` directory of the ``MultiscaleROMApplication`` project.
+The script takes the project's root path, the runtime generated dataset,
+and the resources file location.
 
 .. code-block:: console
 
