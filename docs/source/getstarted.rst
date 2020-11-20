@@ -208,8 +208,8 @@ The output files are written in the ``datasets`` directory:
   rve_30m_200ip.json
   rve_30m_ROMip.json
 
-Reconstruction data
-------------------------------
+Datasets for reconstruction
+---------------------------
 
 The following step is generate the correlation matrices required for later
 reconstruction of RVE fields, for the combination of modes and points specified
@@ -244,3 +244,115 @@ correlation matrices
   correlation_strain_20m.npy       
   correlation_strain_30m.npy       
   ...
+
+1-ip multiscale simulation
+--------------------------
+
+The ``validate`` directory is created and populated at the initialization step.
+The directory contains template files for the simulation of a macro consisting in 
+a 1-ip tetrahedron, using the reduced datasets computed previously.
+It reproduces the strain state of the validation cases selected in the configuration file.
+
+The ``validate`` module creates a files structure for testing each dataset generated.
+
+.. code-block:: console
+
+  $ hprfe2 validate
+  case_0 _20m_100ip
+  case_0 _20m_200ip
+  case_0 _20m_ROMip
+  case_0 _30m_100ip
+  case_0 _30m_200ip
+  case_0 _30m_ROMip
+
+The file structure will be like this:
+
+.. code-block:: console
+
+  validation
+  ├── case_0
+  │   ├── _20m_100ip
+  │   │   ├── macro_materials.json
+  │   │   ├── macro_model.mdpa
+  │   │   ├── MainKratos.py
+  │   │   ├── ProjectParameters.json
+  │   │   └── ProjectParameters_quiet.json
+  │   ├── _20m_200ip
+  │   ├── _20m_ROMip
+  │   ├── _30m_100ip
+  │   ├── _30m_200ip
+  │   └── _30m_ROMip
+  ├── macro_materials.json
+  ├── macro_model.mdpa
+  ├── MainKratos.py
+  ├── ProjectParameters.json
+  ├── tmp_case_0_20m_100ip.bash
+  ├── tmp_case_0_20m_200ip.bash
+  ├── tmp_case_0_20m_ROMip.bash
+  ├── tmp_case_0_30m_100ip.bash
+  ├── tmp_case_0_30m_200ip.bash
+  └── tmp_case_0_30m_ROMip.bash
+
+  
+The final step in at this stage is just to run the desired script(s).
+In this case we will test the smaller case:
+
+.. code-block:: console
+
+  $ cd validation
+  $ bash tmp_case_0_20m_100ip.bash
+  ... (kratos output ommited) ...
+
+All the generetaed files will be inside the corresponding directory.
+In this case:
+
+.. code-block:: console
+
+  $ ll case_0/_20m_100ip/
+  homogenized_stress.dat
+  macro_materials.json
+  macro_model.mdpa
+  MainKratos.py
+  Multiscale_0.post.msh
+  Multiscale_0.post.res
+  outMainKratos
+  outMainKratos_quiet
+  ProjectParameters.json
+  ProjectParameters_quiet.json
+  rve_runtime_data_el1_ip0.json
+  time.dat
+  time_quiet.dat
+  vtk_output
+
+being ``homogenized_stress.dat`` homogenized strain-stress data, ``Multiscale_0.post.*`` GiD
+visualization files, ``outMainKratos`` Kratos output, ``vtk_ouput`` Paraview
+visualization files, ``time.dat`` time information, and ``*_quiet`` are the 
+equivalent files but run without writing output, useful for speedup measurements.
+
+
+Reconstruction of fields
+------------------------
+
+.. warning::
+    The module for fields' reconstruction is not yet integrated in HPRFE2.
+    The following are temporary directions using transition scripts.
+
+The reconstruction of the RVE fields requires datasets for each validation case.
+The script will look for the required files in the ``resources`` directory, located
+in the ``case_0`` directory (in this tutorial).
+Resources dataset are model and material RVE data, reduced dataset, strain bases, strain and damage variable correlation matrices.  Resources must by collected manually for now.
+
+.. code-block:: console
+
+  $ mkdir case_0/resources
+  $ cp ../sampling/model.mdpa ../sampling/materials.json ../datasets/rve_20m_100ip.json ../bases/bases_STRAIN_FLUCTUANT_255m.npy ../bases/correlation_strain20m.npy ../bases/correlation_r_value_20m_100ip.npy case_0/resources
+
+We now ``cd`` inte out case's directory and run the reconstruction script, which if located in the ``offline_scrips`` directory of the ``MultiscaleROMApplication`` project.
+The script takes the project's root path, the runtime generated dataset, and the resources file location.
+
+.. code-block:: console
+
+  $ python ~/offline_scripts/reconstruct_rve_variables.py ~/COMPOSITE_01 rve_runtime_data_el1_ip0.json ../resources/
+
+The scripts writes the ``rve_reconstructed.h5`` and ``rve_reconstructed.xdmf`` files for visualization in Paraview.
+
