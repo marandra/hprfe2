@@ -173,6 +173,7 @@ def write_ip_sets(common):
     """ docstring here """
 
     import KratosMultiphysics
+    import KratosMultiphysics.MultiscaleROMApplication
     from KratosMultiphysics.StructuralMechanicsApplication import (
         structural_mechanics_analysis,
     )
@@ -259,6 +260,7 @@ def write_ip_sets(common):
 if __name__ == "__main__":
 
     import sys
+
     if len(sys.argv) > 1:
         C = Common(Path(sys.argv[1]))
     else:

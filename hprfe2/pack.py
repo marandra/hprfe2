@@ -90,8 +90,9 @@ def write_datasets(common):
     """ docstring here """
 
     import KratosMultiphysics
-    from KratosMultiphysics.StructuralMechanicsApplication import (
-        structural_mechanics_analysis,
+    import KratosMultiphysics.MultiscaleROMApplication
+    from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_analysis import (
+        StructuralMechanicsAnalysis,
     )
 
     parameters_dict = {
@@ -120,9 +121,7 @@ def write_datasets(common):
 
     parameters = KratosMultiphysics.Parameters(json.dumps(parameters_dict))
     model = KratosMultiphysics.Model()
-    simulation = structural_mechanics_analysis.StructuralMechanicsAnalysis(
-        model, parameters
-    )
+    simulation = StructuralMechanicsAnalysis(model, parameters)
     simulation.Initialize()
     modelpart = simulation._GetSolver().GetComputingModelPart()
 
