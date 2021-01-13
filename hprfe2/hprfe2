@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-hprfe2 v0.9
+hprfe2
 Marcelo Raschi <marcelo.raschi@gmail.com>
 Utilities for HPRFE2 modal bases datasets
 
@@ -16,7 +16,8 @@ Options:
                           configuration file must be located [default: .]
 
 Commands:
-    init        Create configuration file, directories, and copy template files
+    config      Create default configuration file
+    init        Create directory structure and copy template files
     deploy      Deploy template cases for sampling
     generate    Generate bases and IP sets
     pack        Create dataset files
@@ -97,6 +98,38 @@ def validate():
     return
 
 
+def config(args):
+    """\
+
+Usage:
+    hprfe2 config [--advanced|--full]
+
+Arguments:
+    -a --advanced  basic and advanced user options
+    -f --full      basic, advanced and and system options
+
+Writes an initial configuration file with default values at root path.
+"""
+
+    # Don't overwrite existing configuration file
+    if C.config_file.is_file():
+        logger.info("File {} exists. Skipping.".format(C.config_file))
+        return
+
+    # Write initial configuration file
+    if not args["--advanced"] and not args["--full"]:
+        C.dump_config(C.config_file, mode="defaults_basic")
+        logger.info("Written configuration file {}.".format(C.config_file))
+    elif args["--advanced"] :
+        C.dump_config(C.config_file, mode="defaults_advanced")
+        logger.info("Written advanced configuration file {}.".format(C.config_file))
+    elif args["--full"]:
+        C.dump_config(C.config_file, mode="defaults_full")
+        logger.info("Written full configuration file {}.".format(C.config_file))
+
+    return
+
+
 def init(t_sampling_path, t_validation_path):
     """\
 
@@ -112,8 +145,6 @@ Writes and creates initial files and directory structure at root path.
 Root path can be passed when invoking the command, if missing the current
 directory (".") is assumed.
 
-    - Checks if configurarion file is present
-    - If missing, writes a file with default values
     - Checks template case files exists
     - Creates sampling directory
     - Copies template files to sampling directory
@@ -127,13 +158,6 @@ directory (".") is assumed.
             logger.info("Created directory {}".format(p))
         else:
             logger.info("Directory {} exists. Skipping.".format(p))
-
-    # Write initial configuration file
-    if C.config_file.is_file():
-        logger.info("File {} exists. Skipping.".format(C.config_file))
-    else:
-        C.dump_config(C.config_file)
-        logger.info("Written configuration file {}.".format(C.config_file))
 
     # Check that Kratos SAMPLING case files exist
     paths = [
@@ -226,7 +250,7 @@ def resources():
 
 if __name__ == "__main__":
 
-    ARGS = docopt(__doc__, version="v0.9", options_first=True)
+    ARGS = docopt(__doc__, version="v1.0.beta", options_first=True)
     # Debug:
     #from pprint import pprint
     #print("Global arguments:")
@@ -283,7 +307,14 @@ if __name__ == "__main__":
     C = common.Common(ROOT)
 
     # Launch tree
-    if ARGS['<command>'] == 'init':
+
+    if ARGS['<command>'] == 'config':
+        if "help" in ARGS['<args>']:
+            exit(config.__doc__)
+        subargs = docopt(config.__doc__)
+        config(subargs)
+
+    elif ARGS['<command>'] == 'init':
         if "help" in ARGS['<args>']:
             exit(init.__doc__)
         init(Path(ARGS["<args>"][0]), Path(ARGS["<args>"][1]))

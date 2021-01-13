@@ -1,13 +1,10 @@
 # TODO:
 # Check schema for input validation https://github.com/keleshev/schema
 # Check fire for exposing objects to CLI https://github.com/google/python-fire
-# Check docopt for args parsing https://github.com/docopt/docopt
 
 import logging
 import json
 from pathlib import Path
-from docopt import docopt
-# import fire
 
 
 logger = logging.getLogger(__name__)
@@ -82,6 +79,8 @@ class Common:
             "rvalue_inelastic_modes": 30,
             "rvalue_svd_cutoff": 1e-4,
             "reuse_existing_files": True,
+        }
+        defaults_system = {
             # training files stuff
             "training_path": "sampling",
             "training_materials_fname": "materials.json",
@@ -105,8 +104,10 @@ class Common:
             # other files stuff
         }
 
+        # combine all levels of default options
         self.defaults_basic = defaults_basic  # keep it for initial dumping
-        self.defaults = {**defaults_basic, **defaults_advanced}
+        self.defaults_advanced = {**self.defaults_basic, **defaults_advanced}
+        self.defaults = {**self.defaults_advanced, **defaults_system}
         self.config = validate_config(self.defaults, config_user)
 
         # file management
@@ -155,7 +156,7 @@ class Common:
         )
         self.rve_fname_pattern = self.config["rve_fname_pattern"]
 
-    def dump_config(self, fname, mode="defaults_basic"):
+    def dump_config(self, fname, mode=""):
         """
         Writes configuration file.
         Mode:
@@ -167,8 +168,8 @@ class Common:
             Path(fname).write_text(
                 json.dumps({"config_data": self.defaults_basic}, indent=2)
             )
-        elif mode == "defaults":
-            Path(fname).write_text(json.dumps({"config_data": self.defaults}, indent=2))
+        elif mode == "defaults_advanced":
+            Path(fname).write_text(json.dumps({"config_data": self.defaults_advanced}, indent=2))
         else:
             Path(fname).write_text(json.dumps({"config_data": self.config}, indent=2))
 
