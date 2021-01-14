@@ -17,6 +17,7 @@ Options:
 
 Commands:
     config      Create default configuration file
+    sampling    Create sampling datastructure and scripts from given template case
     init        Create directory structure and copy template files
     deploy      Deploy template cases for sampling
     generate    Generate bases and IP sets
@@ -128,6 +129,60 @@ Writes an initial configuration file with default values at root path.
         logger.info("Written full configuration file {}.".format(C.config_file))
 
     return
+
+
+def sampling(arg):
+    """\
+
+Usage:
+    hprfe2 sampling [-t PATH]
+
+Arguments:
+    -t PATH --template=PATH  path to a template sampling case files
+
+Writes and creates initial files and directory structure at root path.
+Root path can be passed when invoking the command, if missing the current
+directory (".") is assumed.
+
+    - Checks template case files exists
+    - Creates sampling directory
+    - Copies template files to sampling directory
+"""
+
+    files = [
+        "MainKratos.py",
+        "model.mdpa",
+        "materials.json",
+        "ProjectParameters.json",
+    ]
+
+    # Create directory
+    if not C.training_path.exists():
+        C.training_path.mkdir()
+        logger.info("Created directory {}".format(C.training_path))
+
+    # special cases, deal with them later
+        #C.config["training_strain_fname"],
+        #"ProjectParameters_quiet.json",
+
+    # Check all needed files are present. If we have a PATH, copy them
+    if arg is None:
+        p = C.training_path
+    else:
+        p = Path(arg)
+
+    for f in files:
+        pf = p / f
+        if not pf.exists():
+            logger.error("Missing template file '{}'. Aborting.".format(pf))
+            exit()
+    # Copy template files to SAMPLING directory, make model.json hard link
+    #for src in paths:
+    #    dest = C.training_path / src.name
+    #    dest.write_text(src.read_text())
+    #logger.info("Template files copied to sampling directory")
+    # check if RVELaw is present in material.json, and make data file abs path
+    # deploy case, make ProjectParameters_quiet and launch script for validation case
 
 
 def init(t_sampling_path, t_validation_path):
@@ -314,15 +369,23 @@ if __name__ == "__main__":
         subargs = docopt(config.__doc__)
         config(subargs)
 
+    elif ARGS['<command>'] == 'sampling':
+        if "help" in ARGS['<args>']:
+            exit(sampling.__doc__)
+        subargs = docopt(sampling.__doc__)
+        sampling(subargs["--template"])
+ 
     elif ARGS['<command>'] == 'init':
         if "help" in ARGS['<args>']:
             exit(init.__doc__)
         init(Path(ARGS["<args>"][0]), Path(ARGS["<args>"][1]))
+
     elif ARGS['<command>'] == 'deploy':
         if "help" in ARGS['<args>']:
             exit(deploy.__doc__)
         validate()
         deploy()
+
     elif ARGS['<command>'] == 'generate':
         if "help" in ARGS['<args>']:
             exit(bases.__doc__ + roc.__doc__)
