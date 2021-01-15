@@ -85,7 +85,6 @@ class Common:
             "training_path": "sampling",
             "training_materials_fname": "materials.json",
             "training_model_fname": "model.mdpa",
-            "training_strain_fname": "strain_set.dat",
             "case_path_pattern": "case_{}",
             "snapshots_fname": "snapshots.h5",
             # bases and roc sets files stuff
@@ -173,20 +172,15 @@ class Common:
         else:
             Path(fname).write_text(json.dumps({"config_data": self.config}, indent=2))
 
-    def parse_training_strain_set(self):
-        """
-        Returns list of strain vectors used for trainig, read from file defined in configuration
-        """
-        fpath = self.training_path / self.config["training_strain_fname"]
-        return fpath.read_text().splitlines()
 
     def case_name(self, c_id):
         """
         Returns case name with corresponging leading zeros
         e.g. if nr_cases:100, id:00..99, nr_id: 2 -> case_01..case_99
         """
-        strain_set = self.parse_training_strain_set()
-        nr_cases = len(strain_set)
+        #strain_set = self.parse_training_strain_set()
+        #nr_cases = len(strain_set)
+        nr_cases = 999  # TODO: hardcoded
         len_id = len(str(nr_cases - 1))  # size of the case number string
         case_id = "{:0{}d}".format(c_id, len_id)
         case_name = self.config["case_path_pattern"].format(case_id)
