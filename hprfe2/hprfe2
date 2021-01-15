@@ -232,7 +232,7 @@ def resources():
 
 if __name__ == "__main__":
 
-    ARGS = docopt(__doc__, version="v1.0.beta", options_first=True)
+    ARGS = docopt(__doc__, version="v1.0.beta")
     # Debug:
     #from pprint import pprint
     #print("Global arguments:")
@@ -300,11 +300,8 @@ if __name__ == "__main__":
         if "help" in ARGS['<args>']:
             exit(sampling.__doc__)
         validate()
-        print(ARGS)
-        print(sampling.__doc__)
-        subargs = docopt(sampling.__doc__, options_first=False)
-        print(subargs)
-        #sampling.run(C, subargs)
+        subargs = docopt(sampling.__doc__)
+        sampling.run(C, subargs)
  
     elif ARGS['<command>'] == 'init':
         if "help" in ARGS['<args>']:

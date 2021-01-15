@@ -1,13 +1,16 @@
 """\
 
 Usage:
-    hprfe2 sampling [-t PATH] [-a NUM|-s FILE]
+    hprfe2 sampling [-v] [-r PATH] [-t PATH] [-a NUM|-s FILE]
 
 Arguments:
-    -t PATH --template=PATH   path to a directory with template sampling case files
-    -s FILE --strain=FILE     path to a strain set file
-    -a NUM --auto-strain=NUM  generates strain set of NUM vectors
+    -t PATH --template=PATH   Path to a directory with template sampling case files
+    -s FILE --strain=FILE     Path to a strain set file
+    -a NUM --auto-strain=NUM  Generates strain set of NUM vectors
                               (in the positive quadrant)
+    -v                        Verbose output
+    -r PATH --root=PATH       Specify the root path of the project, where the
+                              configuration file must be located [default: .]
 
 Creates file structure for the sampling. If a path is pass with the -t option, 
 it copies template from path, else, it assumes files are already present in the
