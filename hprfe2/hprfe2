@@ -19,7 +19,6 @@ Commands:
     config      Create default configuration file
     sample      Create sampling datastructure and scripts from a given template case
     generate    Generate bases and IP sets
-    pack        Create dataset files
     resources   Create datasets for fields reconstruction
     validate    Generate 1ip-multiscale validation cases
 
@@ -37,6 +36,7 @@ See 'hprfe2 <command> help' for more information on a specific command.
 # fix logger messages (make them consistent)
 # show relative paths
 
+import sys
 import logging
 from pathlib import Path
 from docopt import docopt
@@ -84,17 +84,6 @@ import multiscale
 #        log_fmt = self.FORMATS.get(record.levelno)
 #        formatter = logging.Formatter(log_fmt)
 #        return formatter.format(record)
-
-
-def validate():
-    """Run several checks before running."""
-
-    # Check that root path is correct (wrt config file)
-    if not C.config_file.is_file():
-        logger.error("{} not found. Correct root_path value?".format(C.config_file))
-        exit()
-
-    return
 
 
 def config(args):
@@ -231,6 +220,9 @@ obtained in the sampling stage.
 
     # Compute ROC ip sets
     roc.write_ip_sets(common)
+
+    # Generate rvelaw datasets
+    pack.write_datasets(common)
     return
 
 
@@ -310,6 +302,10 @@ if __name__ == "__main__":
     ROOT = Path(ARGS["--root"])
     C = common.Common(ROOT)
 
+    if not C.config_file.is_file() and ARGS["<command>"] != "config":
+        logger.error("{} not found. Correct root_path value?".format(C.config_file))
+        sys.exit()
+
     # Launch tree
 
     if ARGS["<command>"] == "config":
@@ -321,7 +317,6 @@ if __name__ == "__main__":
     elif ARGS["<command>"] == "sample":
         if "help" in ARGS["<args>"]:
             exit(sampling.__doc__)
-        validate()
         subargs = docopt(sampling.__doc__)
         sampling.run(C, subargs)
 
@@ -330,24 +325,12 @@ if __name__ == "__main__":
             exit(init.__doc__)
         init(Path(ARGS["<args>"][0]), Path(ARGS["<args>"][1]))
 
-    elif ARGS["<command>"] == "deploy":
-        if "help" in ARGS["<args>"]:
-            exit(deploy.__doc__)
-        validate()
-        deploy()
-
     elif ARGS["<command>"] == "generate":
         if "help" in ARGS["<args>"]:
             exit(generate.__doc__)
-        validate()
         subargs = docopt(generate.__doc__)
         generate(C, subargs)
 
-    elif ARGS["<command>"] == "pack":
-        if "help" in ARGS["<args>"]:
-            exit(bases.__doc__)
-        validate()
-        pack.write_datasets(C)
     elif ARGS["<command>"] == "resources":
         if "help" in ARGS["<args>"]:
             # workaround: avoiding importing module until use, banner Kratos
