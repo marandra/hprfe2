@@ -57,7 +57,7 @@ class Common:
             # most frequently set
             "validation_dataset": [0],
             "rve_data_points": [100, 200],
-            "rve_data_points_rom": True,
+            "rve_data_points_rom": False,
             "rve_data_modes": [20, 30],
             "reconstruction_pairs": [[20, 100], [30,200], ],
         }

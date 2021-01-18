@@ -18,8 +18,6 @@ Options:
 Commands:
     config      Create default configuration file
     sample      Create sampling datastructure and scripts from a given template case
-    init        Create directory structure and copy template files
-    deploy      Deploy template cases for sampling
     generate    Generate bases and IP sets
     pack        Create dataset files
     resources   Create datasets for fields reconstruction
@@ -47,19 +45,20 @@ import sampling
 import bases
 import roc
 import pack
-#import reconstruction
+
+# import reconstruction
 import multiscale
 
 ## add verbosity level
-#logging.VERBOSE = 15  # between DEBUG and INFO
-#logging.__all__ += ['VERBOSE']
-#logging.addLevelName(logging.VERBOSE, 'VERBOSE')
-#logger = logging.getLogger("hprfe2")
-#setattr(logger, 'verbose', lambda message,
+# logging.VERBOSE = 15  # between DEBUG and INFO
+# logging.__all__ += ['VERBOSE']
+# logging.addLevelName(logging.VERBOSE, 'VERBOSE')
+# logger = logging.getLogger("hprfe2")
+# setattr(logger, 'verbose', lambda message,
 #        *args: logger._log(logging.VERBOSE, message, args))
 #
 #
-#class CustomFormatter(logging.Formatter):
+# class CustomFormatter(logging.Formatter):
 #    """Logging Formatter to add colors and count warning / errors"""
 #
 #    green = "\x1b[32;21m"
@@ -120,7 +119,7 @@ Writes an initial configuration file with default values at root path.
     if not args["--advanced"] and not args["--full"]:
         C.dump_config(C.config_file, mode="defaults_basic")
         logger.info("Written configuration file {}.".format(C.config_file))
-    elif args["--advanced"] :
+    elif args["--advanced"]:
         C.dump_config(C.config_file, mode="defaults_advanced")
         logger.info("Written advanced configuration file {}.".format(C.config_file))
     elif args["--full"]:
@@ -190,27 +189,50 @@ directory (".") is assumed.
 
     for p in paths:
         if not p.exists():
-            logger.error("Missing template file {}. Aborting.".format(p))
+            logger.error("Missing template file {}.\nAborting".format(p))
             exit()
 
     # Copy template files to VALIDATION directory
     for src in paths:
         dest = C.multiscale_path / src.name
         dest.write_text(src.read_text())
-    logger.info("Template files copied to validation directory")
+    logger.info("Template files copied to validation directory.")
 
     return
 
 
-def generate():
-    """Creates file structure from the computation of bases"""
+def generate(common, args):
+    """\
+
+Usage:
+    hprfe2 [-v] [-r PATH] generate [-f]
+
+Arguments:
+    -f --force                Overides existing files
+    -v --verbose              Verbose output
+    -r PATH --root=PATH       Specify the root path of the project, where the
+                              configuration file must be located [default: .]
+
+Computes modal bases of energy, strain and damage, from snapshot of the solutions
+obtained in the sampling stage.
+"""
+
+    # Create directory if not present already
+    for p in [common.bases_path, common.datasets_path]:
+        if not p.exists():
+            p.mkdir()
+            logger.info("Created directory {}".format(p))
+
+    if args["--force"]:
+        common.config["reuse_existing_files"] = False
 
     # Generate bases
-    bases.run(C)
+    bases.run(common)
 
     # Compute ROC ip sets
-    roc.write_ip_sets(C)
+    roc.write_ip_sets(common)
     return
+
 
 def resources():
     """ doc """
@@ -234,115 +256,118 @@ if __name__ == "__main__":
 
     ARGS = docopt(__doc__, version="v1.0.beta", options_first=True)
     # Debug:
-    #from pprint import pprint
-    #print("Global arguments:")
-    #pprint(ARGS)
+    # from pprint import pprint
+    # print("Global arguments:")
+    # pprint(ARGS)
 
     # Configure logger
-    LOGLEVEL = [logging.INFO, logging.INFO, logging.DEBUG][ARGS['-v']]
-    #LOGLEVEL = [logging.INFO, logging.VERBOSE, logging.DEBUG][ARGS['-v']]
+    LOGLEVEL = [logging.INFO, logging.INFO, logging.DEBUG][ARGS["-v"]]
+    # LOGLEVEL = [logging.INFO, logging.VERBOSE, logging.DEBUG][ARGS['-v']]
     logging.basicConfig(
         format="[%(asctime)s] %(message)s",
         datefmt="%H:%M:%S",
         level=LOGLEVEL,
     )
     logger = logging.getLogger(__name__)
-    #print(logging.__all__)
-    #print(logging.DEBUG)
-    #print(logging.VERBOSE)
-    #print(logging.INFO)
-    #print(logging.WARNING)
-    #print(logging.ERROR)
-    #print(logging.CRITICAL)
+    # print(logging.__all__)
+    # print(logging.DEBUG)
+    # print(logging.VERBOSE)
+    # print(logging.INFO)
+    # print(logging.WARNING)
+    # print(logging.ERROR)
+    # print(logging.CRITICAL)
 
     # create console handler with a higher log level
-    #ch = logging.StreamHandler()
-    #ch.setLevel(LOGLEVEL)
-    #ch.setFormatter(CustomFormatter())
-    
-    #logger.setLevel(30)
-    #logger.addHandler(ch)
+    # ch = logging.StreamHandler()
+    # ch.setLevel(LOGLEVEL)
+    # ch.setFormatter(CustomFormatter())
 
-    #fh = logging.FileHandler("{}".format(C.root_path / "hprfe2.log"))
-    #fh.setLevel(logging.DEBUG)
-    #fh.setFormatter(logging.Formatter("[%(asctime)s] xxx %(message)s"))
+    # logger.setLevel(30)
+    # logger.addHandler(ch)
+
+    # fh = logging.FileHandler("{}".format(C.root_path / "hprfe2.log"))
+    # fh.setLevel(logging.DEBUG)
+    # fh.setFormatter(logging.Formatter("[%(asctime)s] xxx %(message)s"))
     # ch = logging.StreamHandler()
     # ch.setLevel(logging.DEBUG)
     # ch.setFormatter(logging.Formatter("[%(asctime)s] %(message)s"))
-    #logger = logging.getLogger(__name__)
-    #logger.addHandler(fh)
+    # logger = logging.getLogger(__name__)
+    # logger.addHandler(fh)
     # logger.addHandler(ch)
 
     # Debug logger:
-    #print("Testing logger")
-    #logger.debug("DEBUG log level")
+    # print("Testing logger")
+    # logger.debug("DEBUG log level")
     ##logger.verbose("VERBOSE log level")
-    #logger.info("INFO log level")
-    #logger.warning("WARNING log level")
-    #logger.error("ERROR log level")
-    #logger.critical("CRITICAL log level")
+    # logger.info("INFO log level")
+    # logger.warning("WARNING log level")
+    # logger.error("ERROR log level")
+    # logger.critical("CRITICAL log level")
     # end of logger configuration
- 
-    #logger.info("--- STARTED ---")
-    
+
+    # logger.info("--- STARTED ---")
+
     ROOT = Path(ARGS["--root"])
     C = common.Common(ROOT)
 
     # Launch tree
 
-    if ARGS['<command>'] == 'config':
-        if "help" in ARGS['<args>']:
+    if ARGS["<command>"] == "config":
+        if "help" in ARGS["<args>"]:
             exit(config.__doc__)
         subargs = docopt(config.__doc__)
         config(subargs)
 
-    elif ARGS['<command>'] == 'sample':
-        if "help" in ARGS['<args>']:
+    elif ARGS["<command>"] == "sample":
+        if "help" in ARGS["<args>"]:
             exit(sampling.__doc__)
         validate()
         subargs = docopt(sampling.__doc__)
         sampling.run(C, subargs)
- 
-    elif ARGS['<command>'] == 'init':
-        if "help" in ARGS['<args>']:
+
+    elif ARGS["<command>"] == "init":
+        if "help" in ARGS["<args>"]:
             exit(init.__doc__)
         init(Path(ARGS["<args>"][0]), Path(ARGS["<args>"][1]))
 
-    elif ARGS['<command>'] == 'deploy':
-        if "help" in ARGS['<args>']:
+    elif ARGS["<command>"] == "deploy":
+        if "help" in ARGS["<args>"]:
             exit(deploy.__doc__)
         validate()
         deploy()
 
-    elif ARGS['<command>'] == 'generate':
-        if "help" in ARGS['<args>']:
-            exit(bases.__doc__ + roc.__doc__)
+    elif ARGS["<command>"] == "generate":
+        if "help" in ARGS["<args>"]:
+            exit(generate.__doc__)
         validate()
-        generate()
-    elif ARGS['<command>'] == 'pack':
-        if "help" in ARGS['<args>']:
+        subargs = docopt(generate.__doc__)
+        generate(C, subargs)
+
+    elif ARGS["<command>"] == "pack":
+        if "help" in ARGS["<args>"]:
             exit(bases.__doc__)
         validate()
         pack.write_datasets(C)
-    elif ARGS['<command>'] == 'resources':
-        if "help" in ARGS['<args>']:
+    elif ARGS["<command>"] == "resources":
+        if "help" in ARGS["<args>"]:
             # workaround: avoiding importing module until use, banner Kratos
-            #print(reconstruction.__doc__)
-            #print(reconstruction.reconstruct_displacement.__doc__)
-            #print(reconstruction.reconstruct_damage.__doc__)
+            # print(reconstruction.__doc__)
+            # print(reconstruction.reconstruct_displacement.__doc__)
+            # print(reconstruction.reconstruct_damage.__doc__)
             # Printting our own help for now...
             exit("Reconstruction help: add docs here")
         validate()
         resources()
-    elif ARGS['<command>'] == 'validate':
-        if "help" in ARGS['<args>']:
+    elif ARGS["<command>"] == "validate":
+        if "help" in ARGS["<args>"]:
             exit(multiscale.__doc__)
         validate()
         multiscale.run(C)
-    elif ARGS['<command>'] in ['help', None]:
+    elif ARGS["<command>"] in ["help", None]:
         exit(__doc__)
     else:
-        exit("{} is not a hprfe2 command. See 'hprfe2 --help'.".format(ARGS['<command>']))
+        exit(
+            "{} is not a hprfe2 command. See 'hprfe2 --help'.".format(ARGS["<command>"])
+        )
 
-    #logger.info("--- FINISH ---")
-        
+    # logger.info("--- FINISH ---")
