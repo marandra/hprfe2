@@ -17,7 +17,7 @@ Options:
 
 Commands:
     config      Create default configuration file
-    sampling    Create sampling datastructure and scripts from a given template case
+    sample      Create sampling datastructure and scripts from a given template case
     init        Create directory structure and copy template files
     deploy      Deploy template cases for sampling
     generate    Generate bases and IP sets
@@ -232,7 +232,7 @@ def resources():
 
 if __name__ == "__main__":
 
-    ARGS = docopt(__doc__, version="v1.0.beta")
+    ARGS = docopt(__doc__, version="v1.0.beta", options_first=True)
     # Debug:
     #from pprint import pprint
     #print("Global arguments:")
@@ -296,7 +296,7 @@ if __name__ == "__main__":
         subargs = docopt(config.__doc__)
         config(subargs)
 
-    elif ARGS['<command>'] == 'sampling':
+    elif ARGS['<command>'] == 'sample':
         if "help" in ARGS['<args>']:
             exit(sampling.__doc__)
         validate()
@@ -342,7 +342,7 @@ if __name__ == "__main__":
     elif ARGS['<command>'] in ['help', None]:
         exit(__doc__)
     else:
-        exit("{} is not a hprfe2 command. See '--help'.".format(ARGS['<command>']))
+        exit("{} is not a hprfe2 command. See 'hprfe2 --help'.".format(ARGS['<command>']))
 
     #logger.info("--- FINISH ---")
         
