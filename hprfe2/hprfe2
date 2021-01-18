@@ -27,9 +27,6 @@ See 'hprfe2 <command> help' for more information on a specific command.
 """
 # TODO
 # get rid of Kratos banner!
-# change file modes 0644
-# change launchers file mode 755 and add env
-# change dirs modes (755?)
 # imporve commands' help
 # update hardcoded filename here
 # fix logger
@@ -114,78 +111,6 @@ Writes an initial configuration file with default values at root path.
     elif args["--full"]:
         C.dump_config(C.config_file, mode="defaults_full")
         logger.info("Written full configuration file {}.".format(C.config_file))
-
-    return
-
-
-def init(t_sampling_path, t_validation_path):
-    """\
-
-Usage:
-    hprfe2 init <template_sampling_path> <template_validation_path>
-
-Arguments:
-
-    template_sampling_path     path to a template sampling case files
-    template_validation_path   path to a template validation case files
-
-Writes and creates initial files and directory structure at root path.
-Root path can be passed when invoking the command, if missing the current
-directory (".") is assumed.
-
-    - Checks template case files exists
-    - Creates sampling directory
-    - Copies template files to sampling directory
-    - Copies template files to validation directory
-"""
-
-    # Create basic dir structure
-    for p in [C.training_path, C.bases_path, C.datasets_path, C.multiscale_path]:
-        if not p.exists():
-            p.mkdir()
-            logger.info("Created directory {}".format(p))
-        else:
-            logger.info("Directory {} exists. Skipping.".format(p))
-
-    # Check that Kratos SAMPLING case files exist
-    paths = [
-        t_sampling_path / "MainKratos.py",
-        t_sampling_path / "model.mdpa",
-        t_sampling_path / "materials.json",
-        t_sampling_path / "ProjectParameters.json",
-        t_sampling_path / C.config["training_strain_fname"],
-        t_sampling_path / "ProjectParameters_quiet.json",
-    ]
-
-    for p in paths:
-        if not p.exists():
-            logger.error("Missing sampling template file {}. Aborting.".format(p))
-            exit()
-
-    # Copy template files to SAMPLING directory
-    for src in paths:
-        dest = C.training_path / src.name
-        dest.write_text(src.read_text())
-    logger.info("Template files copied to sampling directory")
-
-    # Check that Kratos VALIDATION case files exist
-    paths = [
-        t_validation_path / "MainKratos.py",
-        t_validation_path / "macro_model.mdpa",
-        t_validation_path / "macro_materials.json",
-        t_validation_path / "ProjectParameters.json",
-    ]
-
-    for p in paths:
-        if not p.exists():
-            logger.error("Missing template file {}.\nAborting".format(p))
-            exit()
-
-    # Copy template files to VALIDATION directory
-    for src in paths:
-        dest = C.multiscale_path / src.name
-        dest.write_text(src.read_text())
-    logger.info("Template files copied to validation directory.")
 
     return
 
@@ -320,11 +245,6 @@ if __name__ == "__main__":
         subargs = docopt(sampling.__doc__)
         sampling.run(C, subargs)
 
-    elif ARGS["<command>"] == "init":
-        if "help" in ARGS["<args>"]:
-            exit(init.__doc__)
-        init(Path(ARGS["<args>"][0]), Path(ARGS["<args>"][1]))
-
     elif ARGS["<command>"] == "generate":
         if "help" in ARGS["<args>"]:
             exit(generate.__doc__)
@@ -339,15 +259,16 @@ if __name__ == "__main__":
             # print(reconstruction.reconstruct_damage.__doc__)
             # Printting our own help for now...
             exit("Reconstruction help: add docs here")
-        validate()
         resources()
+
     elif ARGS["<command>"] == "validate":
         if "help" in ARGS["<args>"]:
             exit(multiscale.__doc__)
-        validate()
         multiscale.run(C)
+
     elif ARGS["<command>"] in ["help", None]:
         exit(__doc__)
+
     else:
         exit(
             "{} is not a hprfe2 command. See 'hprfe2 --help'.".format(ARGS["<command>"])

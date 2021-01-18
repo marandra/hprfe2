@@ -1,5 +1,15 @@
-"""
-docstrings here
+"""\
+
+Usage:
+    hprfe2 [-v] [-r PATH] validate
+
+Options:
+    -h --help             Print this help message and exit
+    -v                    Verbose output (-v verbose, -vv debug)
+    -r PATH --root=PATH   Specify the root path of the project, where the
+                          configuration file must be located [default: .]
+
+Writes and creates initial files structure for validation of computed bases.
 """
 
 import logging
@@ -10,6 +20,254 @@ from common import Common
 
 
 logger = logging.getLogger(__name__)
+
+MAIN = """
+import KratosMultiphysics
+import KratosMultiphysics.StructuralMechanicsApplication
+import KratosMultiphysics.MultiscaleROMApplication
+from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_analysis import (
+    StructuralMechanicsAnalysis,
+)
+
+with open("ProjectParameters.json", "r") as fp:
+    parameters = KratosMultiphysics.Parameters(fp.read())
+model = KratosMultiphysics.Model()
+simulation = StructuralMechanicsAnalysis(model, parameters)
+simulation.Run()
+"""
+
+MATERIAL = """
+{  
+    "properties": [{
+        "model_part_name": "Structure.MATERIAL_MULTISCALE",
+        "properties_id": 1,
+        "Material": {
+            "name": "multiscale",
+            "constitutive_law": {
+                "name": "RVELaw",
+                "Parameters": {
+                        "rve_data_filename": "to_be_filled_by_script",
+                        "convergence_criterion": "residual_criterion",
+                        "residual_relative_tolerance": 1e-2,
+                        "residual_absolute_tolerance": 0.0,
+                        "max_iteration": 20,
+                        "verbose": 1
+                        }
+                },
+            "Variables": {},
+            "Tables":  {}
+            }
+       }]
+}
+"""
+
+MODEL = """
+Begin ModelPartData
+End ModelPartData
+
+Begin Properties 0
+End Properties
+Begin Nodes
+    1		  0.0	   0.0	   0.0
+    2		  1.0	   0.0	   0.0
+    3  	  0.0	   1.0	   0.0
+    4		  0.0	   0.0	   1.0
+End Nodes
+
+Begin Elements SmallDisplacementElement3D4N
+    1          0         4	 3	 2	 1 
+End Elements
+
+Begin SubModelPart MATERIAL_MULTISCALE
+    Begin SubModelPartNodes
+    End SubModelPartNodes
+    Begin SubModelPartElements
+    1
+    End SubModelPartElements
+    Begin SubModelPartConditions
+    End SubModelPartConditions
+End SubModelPart
+
+Begin SubModelPart PINNED
+    Begin SubModelPartNodes
+        1
+    End SubModelPartNodes
+    Begin SubModelPartElements
+    End SubModelPartElements
+    Begin SubModelPartConditions
+    End SubModelPartConditions
+End SubModelPart
+
+Begin SubModelPart DISPL_X
+    Begin SubModelPartNodes
+        2
+    End SubModelPartNodes
+    Begin SubModelPartElements
+    End SubModelPartElements
+    Begin SubModelPartConditions
+    End SubModelPartConditions
+End SubModelPart
+
+Begin SubModelPart DISPL_Y
+    Begin SubModelPartNodes
+        3
+    End SubModelPartNodes
+    Begin SubModelPartElements
+    End SubModelPartElements
+    Begin SubModelPartConditions
+    End SubModelPartConditions
+End SubModelPart
+
+Begin SubModelPart DISPL_Z
+    Begin SubModelPartNodes
+        4
+    End SubModelPartNodes
+    Begin SubModelPartElements
+    End SubModelPartElements
+    Begin SubModelPartConditions
+    End SubModelPartConditions
+End SubModelPart
+
+Begin SubModelPart MACRO
+    Begin SubModelPartNodes
+         1
+         2
+         3
+         4
+    End SubModelPartNodes
+    Begin SubModelPartElements
+         1
+    End SubModelPartElements
+    Begin SubModelPartConditions
+    End SubModelPartConditions
+End SubModelPart
+"""
+
+PARAMS = """
+{
+    "problem_data": {
+        "problem_name": "Multiscale",
+        "parallel_type": "OpenMP",
+        "start_time": 0.0,
+        "end_time": 0.99,
+        "echo_level": 1
+    },
+    "solver_settings": {
+        "model_part_name": "Structure",
+        "domain_size": 3,
+        "echo_level": 1,
+        "time_stepping": {
+            "time_step": 0.025
+        },
+        "solver_type": "Static",
+        "model_import_settings": {
+            "input_type": "mdpa",
+            "input_filename": "macro_model"
+        },
+        "material_import_settings": {
+            "materials_filename": "macro_materials.json"
+        },
+        "line_search": true,
+        "use_old_stiffness_in_first_iteration": true,
+        "move_mesh_flag": false,
+        "convergence_criterion": "residual_criterion",
+        "residual_relative_tolerance": 1e-2,
+        "residual_absolute_tolerance": 0.0,
+        "max_iteration": 10,
+        "linear_solver_settings": {
+            "solver_type": "amgcl",
+            "krylov_type": "cg",
+            "max_iteration": 500,
+            "scaling": false,
+            "verbosity": 1
+        },
+        "rotation_dofs": false,
+        "compute_reactions": true,
+        "auxiliary_variables_list": []
+        },
+    "processes": {
+        "my_processes": [{
+           "python_module": "kratos_process_write_rve_reconstruction_data",
+           "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
+           "process_name": "WriteRveReconstructionData",
+           "Parameters": {
+               "model_part_name": "Structure.MACRO",
+               "filename": "rve_runtime_data_el1_ip0.json",
+               "element": 1,
+               "integration_point": 0
+               }
+           },{
+            "python_module": "kratos_process_write_elements_homogenized_output",
+            "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
+            "process_name": "WriteElementsHomogenizedOutput",
+            "Parameters": {
+                "model_part_name": "Structure.MACRO",
+                "filename": "homogenized_stress.dat",
+                "variable_name": "CAUCHY_STRESS_VECTOR"
+                }
+            } 
+        ],
+        "list_initial_processes": [],
+        "list_boundary_processes": [{
+            "python_module": "assign_vector_variable_process",
+            "kratos_module": "KratosMultiphysics",
+            "process_name": "AssignVectorVariableProcess",
+            "Parameters": {
+                "model_part_name": "Structure.PINNED",
+                "variable_name": "DISPLACEMENT",
+                "constrained": [true, true, true],
+                "value": [0.0, 0.0, 0.0],
+                "interval": [0.0, "End"]
+                }
+        },{
+            "python_module": "assign_vector_variable_process",
+            "kratos_module": "KratosMultiphysics",
+            "process_name": "AssignVectorVariableProcess",
+            "Parameters": {
+                "model_part_name": "Structure.DISPL_X",
+                "variable_name": "DISPLACEMENT",
+                "constrained": [true, true, true],
+                "value": ["0.0*t", "0.0*t", "0.0*t"],
+                "interval": [0.0, "End"]
+                }
+            },{
+            "python_module": "assign_vector_variable_process",
+            "kratos_module": "KratosMultiphysics",
+            "process_name": "AssignVectorVariableProcess",
+            "Parameters": {
+                "model_part_name": "Structure.DISPL_Y",
+                "variable_name": "DISPLACEMENT",
+                "constrained": [true, true, true],
+                "value": ["0.0*t", "0.0*t", "0.0*t"],
+                "interval": [0.0, "End"]
+                }
+            },{
+            "python_module": "assign_vector_variable_process",
+            "kratos_module": "KratosMultiphysics",
+            "process_name": "AssignVectorVariableProcess",
+            "Parameters": {
+                "model_part_name": "Structure.DISPL_Z",
+                "variable_name": "DISPLACEMENT",
+                "constrained": [true, true, true],
+                "value": ["0.0*t", "0.0*t", "0.0*t"],
+                "interval": [0.0, "End"]
+                }
+            }],
+        "loads_process_list": []
+    },
+    "output_processes" : {},
+    "restart_options": {
+        "SaveRestart": false,
+        "RestartFrequency": 0,
+        "LoadRestart": false,
+        "Restart_Step": 0
+    },
+    "constraints_data": {
+        "incremental_load": false,
+        "incremental_displacement": false
+    }
+}
+"""
 
 
 def create_properties_file(m_prop, c_prop, t_prop, quiet=False):
@@ -132,6 +390,25 @@ rm {}
 
 
 def run(common):
+
+    # Create base directory
+    p = common.multiscale_path
+    if not p.exists():
+        p.mkdir()
+        logger.info("Created directory {}".format(p))
+
+    # Write template files to validation directory
+    dest = common.multiscale_path / "macro_model.mdpa"
+    dest.write_text(MODEL)
+    dest = common.multiscale_path / "macro_materials.json"
+    dest.write_text(MATERIAL)
+    dest = common.multiscale_path / "ProjectParameters.json"
+    dest.write_text(PARAMS)
+    dest = common.multiscale_path / "MainKratos.py"
+    dest.write_text(MAIN)
+    logger.info("Writen template files")
+
+    # Create case structure
     for c in common.config["validation_dataset"]:
         for m in common.config["rve_data_modes"]:
             for p in common.ip_subsets:
@@ -141,18 +418,3 @@ def run(common):
                 create_case_dir(rve_path, common.training_path, common.datasets_path)
                 create_launch_script(rve_path)
                 logger.info("{} {}".format(rve_path.parent.name, rve_path.name))
-
-#######################################
-# main
-#######################################
-
-if __name__ == "__main__":
-
-    import sys
-
-    if len(sys.argv) > 1:
-        common = Common(root_path=Path(sys.argv[1]))
-    else:
-        exit("Missing root_path argument.")
-
-    run(common)
