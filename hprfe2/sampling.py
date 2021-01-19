@@ -1,8 +1,9 @@
 """\
 
 Usage:
-    hprfe2 [-v] [-r PATH] sample [-t PATH] [-a NUM|-s FILE]
+    hprfe2 [-v] [-r PATH] sample deploy [-t PATH] [-a NUM|-s FILE]
     hprfe2 [-v] [-r PATH] sample learn
+    hprfe2 [-v] [-r PATH] sample launcher
 
 Arguments:
     -t PATH --template=PATH   Path to a directory with template sampling case files
@@ -14,7 +15,10 @@ Arguments:
                               configuration file must be located [default: .]
 
 Commands:
+    deploy                    Create sampling file structure and launch scripts, using
+                              existing or provided template files
     learn                     Run optimization steps
+    launcher                  Write launcher scripts
 
 Creates file structure for the sampling. If a path is pass with the -t option, 
 it copies template from path, else, it assumes files are already present in the
@@ -422,8 +426,11 @@ def learn(common, args):
 
 
 def run(common, args):
-    if not args["learn"]:
+    if args["deploy"]:
         deploy(common, args)
         launch_scripts(common)
-    else:
+    if args["launcher"]:
+        launch_scripts(common)
+    if args["learn"]:
         learn(common, args)
+        launch_scripts(common)
