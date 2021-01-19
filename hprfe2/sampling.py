@@ -272,10 +272,23 @@ def deploy(common, args):
         create_run_script(case_path)
         logger.debug("{} {}".format(case_path.name, strain_vector))
     logger.info("Created {} sampling cases".format(i + 1))
+    return
 
+
+def launch_scripts(common):
     # Write launcher scripts
+    src = common.training_path / STRAIN_FN[0]
+    strain_set = src.read_text().splitlines()
+    for i, line in enumerate(strain_set):
+        validation = False
+        case_path = common.training_path / common.case_name(i)
+        strain_vector = [float(x) for x in line.split()]
+        if i in common.config["validation_dataset"]:
+            validation = True
+        create_run_script(case_path)
+        logger.debug("{} {}".format(case_path.name, strain_vector))
     create_launchers(common.training_path)
-
+    logger.info("Writen launch scripts".format(i + 1))
     return
 
 
@@ -411,5 +424,6 @@ def learn(common, args):
 def run(common, args):
     if not args["learn"]:
         deploy(common, args)
+        launch_scripts(common)
     else:
         learn(common, args)
