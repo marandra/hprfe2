@@ -386,6 +386,17 @@ def optimize_timesteps(case, te):
     param["solver_settings"]["time_stepping"]["time_step_table"] = ts_table
     (case / "ProjectParameters.json").resolve().write_text(json.dumps(param, indent=4))
 
+def print_histogram(values, bins=20, t0=0, t1=1):
+    B = [0] * bins
+    for v in values:
+        b = int(v / (t1-t0) * bins)
+        B[b] += 1
+    print()
+    print("Elastic range distribution:")
+    for i, c in enumerate(B):
+        print("{:0.2f}: {:>3d} |{}".format(i*(t1-t0)/bins, c, "*" * c))
+    print()
+    return
 
 def learn(common, args):
     # Deploy file structure for sampling
@@ -393,27 +404,30 @@ def learn(common, args):
     strain_set = src.read_text().splitlines()
 
     # Detect range
+    skipped = []
     for i, line in enumerate(strain_set):
         case_path = common.training_path / common.case_name(i)
         if (case_path / "elastic.dat").exists():
-            logger.info(
-                "File {} exists. Skipping case.".format(str(case_path / "elastic.dat"))
-            )
+            skipped.append(i)
             continue
         detect_elastic_range(case_path)
+    logger.info("Skipped cases with existing file '{}'".format("elastic.dat"))
+    logger.debug("{}".format(skipped))
 
-    # Validate results
+    # Process results
+    values = []
     for i, line in enumerate(strain_set):
         case_path = common.training_path / common.case_name(i)
         tc = float((case_path / "elastic.dat").read_text().splitlines()[-1])
-
-        if tc < 0.01 or tc > 0.99:
-            logger.warning(
-                "Elastic region for case {} is outside 0.01 - 0.99 range.".format(
-                    str(common.case_name(i))
-                )
-            )
-        print(tc)
+        values.append(tc)
+        #if tc < 0.01 or tc > 0.99:
+        #    logger.warning(
+        #        "Elastic region for case {} is outside 0.01 - 0.99 range.".format(
+        #            str(common.case_name(i))
+        #        )
+        #    )
+        #print(tc)
+    print_histogram(values, bins=20, t0=0, t1=1)
 
     # Adapt params
     for i, line in enumerate(strain_set):
