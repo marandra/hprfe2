@@ -58,6 +58,8 @@ def create_case_dir(case, strain, validation=False):
     m_prop = case.parent / "ProjectParameters.json"  # template properties file
     p = json.loads(m_prop.read_text())
     p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = strain
+    # TODO: Fix the path, it need root_path. This is a workaround
+    p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str((case/"../..").resolve())
     c_prop = case / "ProjectParameters.json"  # destination case properties file
     c_prop.write_text(json.dumps(p, indent=4))
     # customize no-output properties (for speedup calc) in validation cases
