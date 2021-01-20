@@ -2,17 +2,18 @@
 
 Usage:
     hprfe2 [-v] [-r PATH] sample deploy [-t PATH] [-a NUM|-s FILE]
-    hprfe2 [-v] [-r PATH] sample learn
+    hprfe2 [-v] [-r PATH] sample learn [-f]
     hprfe2 [-v] [-r PATH] sample launcher
 
 Arguments:
+    -v                        Verbose output
+    -r PATH --root=PATH       Specify the root path of the project, where the
+                              configuration file must be located [default: .]
     -t PATH --template=PATH   Path to a directory with template sampling case files
     -s FILE --strain=FILE     Path to a strain set file
     -a NUM --auto-strain=NUM  Generates strain set of NUM vectors
                               (in the positive quadrant)
-    -v                        Verbose output
-    -r PATH --root=PATH       Specify the root path of the project, where the
-                              configuration file must be located [default: .]
+    -f --force                Do not skip cases with previous learning results
 
 Commands:
     deploy                    Create sampling file structure and launch scripts, using
@@ -407,12 +408,13 @@ def learn(common, args):
     skipped = []
     for i, line in enumerate(strain_set):
         case_path = common.training_path / common.case_name(i)
-        if (case_path / "elastic.dat").exists():
+        if (case_path / "elastic.dat").exists() and not args["--force"]:
             skipped.append(i)
             continue
         detect_elastic_range(case_path)
-    logger.info("Skipped cases with existing file '{}'".format("elastic.dat"))
-    logger.debug("{}".format(skipped))
+    if len(skipped) > 0:
+        logger.info("Skipped cases with existing file '{}'".format("elastic.dat"))
+        logger.debug("{}".format(skipped))
 
     # Process results
     values = []
