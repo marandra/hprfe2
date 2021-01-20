@@ -9,7 +9,6 @@ from pathlib import Path
 import numpy
 import h5py
 import sklearn.decomposition
-from common import Common
 
 
 logger = logging.getLogger(__name__)
