@@ -59,11 +59,14 @@ class Common:
             "rve_data_points": [100, 200],
             "rve_data_points_rom": False,
             "rve_data_modes": [20, 30],
-            "reconstruction_pairs": [[20, 100], [30,200], ],
+            "reconstruction_pairs": [
+                [20, 100],
+                [30, 200],
+            ],
         }
         defaults_advanced = {
             # example option
-            #"rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
+            # "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
             "rve_data_points_range_list": [],
             #
             "energy_name": "ENERGY_FREE",
@@ -168,18 +171,19 @@ class Common:
                 json.dumps({"config_data": self.defaults_basic}, indent=2)
             )
         elif mode == "defaults_advanced":
-            Path(fname).write_text(json.dumps({"config_data": self.defaults_advanced}, indent=2))
+            Path(fname).write_text(
+                json.dumps({"config_data": self.defaults_advanced}, indent=2)
+            )
         else:
             Path(fname).write_text(json.dumps({"config_data": self.config}, indent=2))
-
 
     def case_name(self, c_id):
         """
         Returns case name with corresponging leading zeros
         e.g. if nr_cases:100, id:00..99, nr_id: 2 -> case_01..case_99
         """
-        #strain_set = self.parse_training_strain_set()
-        #nr_cases = len(strain_set)
+        # strain_set = self.parse_training_strain_set()
+        # nr_cases = len(strain_set)
         nr_cases = 999  # TODO: hardcoded
         len_id = len(str(nr_cases - 1))  # size of the case number string
         case_id = "{:0{}d}".format(c_id, len_id)

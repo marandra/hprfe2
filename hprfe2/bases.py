@@ -5,6 +5,7 @@ import logging
 import os
 import time
 from pathlib import Path
+
 # import multiprocessing
 import numpy
 import h5py
@@ -17,6 +18,7 @@ logger = logging.getLogger(__name__)
 def write_field_to_hdf5(filename, group, field, timestep, data):
     with h5py.File(filename, "a") as f:
         f.create_dataset("{}/{}/{}".format(group, field, timestep), data=data)
+
 
 def _get_shape_of_snapshots_in_case(spath, group, field):
     """
@@ -34,6 +36,7 @@ def _get_shape_of_snapshots_in_case(spath, group, field):
             # not counting missing datasets
             pass
     return rows, cols
+
 
 def _read_snapshots_in_case(spath, group, field):
     """
@@ -55,6 +58,7 @@ def _read_snapshots_in_case(spath, group, field):
                 )
             )
     return snapshots
+
 
 def read_snapshots(common, cases, group, field):
     fname = common.config["snapshots_fname"]
@@ -81,11 +85,10 @@ def read_snapshots(common, cases, group, field):
         column += numpy.shape(array)[1]
         #
         if not counter % batch_size:
-            logger.info(
-                "    {}/{} trajectories processed".format(counter, len(paths))
-            )
+            logger.info("    {}/{} trajectories processed".format(counter, len(paths)))
         counter += 1
     return arrays
+
 
 def read_local_svd(common, cases, field, cutoff_tol):
     """Return array combining bases of training cases.
@@ -149,12 +152,11 @@ def read_local_svd(common, cases, field, cutoff_tol):
         column += c
 
         if not counter % batch_size:
-            logger.info(
-                "    {}/{} trajectories processed".format(counter, len(paths))
-            )
+            logger.info("    {}/{} trajectories processed".format(counter, len(paths)))
         counter += 1
 
     return arrays
+
 
 def remove_elastic_modes(X, Ue):
     """Remove components in the base U from the vectors X.
@@ -175,6 +177,7 @@ def remove_elastic_modes(X, Ue):
         X[:, i] -= numpy.sum(projection * Ue, axis=1)
     logger.debug("    elapsed time: {:.1f}s".format(time.time() - t0))
     return X
+
 
 def compute_svd(common, X, nr_modes):
     """Compute (truncated) SVD decomposition of X vectors.
@@ -211,6 +214,7 @@ def compute_svd(common, X, nr_modes):
     logger.info("")
     numpy.savetxt(common.bases_path / "singular_values.dat", S)
     return U
+
 
 def create_bases(
     common,
@@ -265,11 +269,10 @@ def create_bases(
             common.bases_path / "sv_{}.dat".format(field_name),
         )
 
-    numpy.save(
-        common.bases_path / bases_fname.format(field_name, numpy.shape(U)[1]), U
-    )
+    numpy.save(common.bases_path / bases_fname.format(field_name, numpy.shape(U)[1]), U)
     logger.info("  Elapsed time: {:.1f}s".format(time.time() - t0))
     logger.info("")
+
 
 def generate_local_bases(case, field, ss_fname, lb_fname, sv_fname):
     base = case / lb_fname
@@ -279,6 +282,7 @@ def generate_local_bases(case, field, ss_fname, lb_fname, sv_fname):
     numpy.save(base, U)
     path = case / sv_fname
     numpy.savetxt(path, S)
+
 
 def generate_missing_local_bases(common, field, threads=1):
     logger.info("Looking for missing local bases {}".format(field))
@@ -342,15 +346,15 @@ def run(common):
     # generate missing local bases
     #
     generate_missing_local_bases(
-            common,
+        common,
         common.config["energy_name"],
     )
     generate_missing_local_bases(
-            common,
+        common,
         common.config["strain_name"],
     )
     generate_missing_local_bases(
-            common,
+        common,
         common.config["rvalue_name"],
     )
 
@@ -358,7 +362,7 @@ def run(common):
     # compute bases
     #
     create_bases(
-            common,
+        common,
         common.config["energy_name"],
         common.config["energy_elastic_modes"],
         common.config["energy_inelastic_modes"],
@@ -367,7 +371,7 @@ def run(common):
         common.svd_cutoff[common.config["energy_name"]],
     )
     create_bases(
-            common,
+        common,
         common.config["strain_name"],
         common.config["strain_elastic_modes"],
         common.config["strain_inelastic_modes"],
@@ -376,7 +380,7 @@ def run(common):
         common.svd_cutoff[common.config["strain_name"]],
     )
     create_bases(
-            common,
+        common,
         common.config["rvalue_name"],
         common.config["rvalue_elastic_modes"],
         common.config["rvalue_inelastic_modes"],

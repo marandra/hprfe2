@@ -82,6 +82,7 @@ def reconstruct_displacement_all(common):
 
     # Version-dependent code. To be removed.
     import sys
+
     if sys.version_info < (3, 8, 0):
         try:
             global_index_path.unlink()
@@ -274,6 +275,7 @@ def reconstruct_displacement(common, n_modes):
 
     # Version-dependent code. To be removed.
     import sys
+
     if sys.version_info < (3, 8, 0):
         try:
             global_index_path.unlink()
@@ -361,7 +363,9 @@ def reconstruct_damage_all(common):
     for pair in common.config["reconstruction_pairs"]:
         nmodes = pair[0]
         npoints = pair[1]
-        fname = common.bases_path / "correlation_r_value_{}m_{}ip.npy".format(nmodes, npoints)
+        fname = common.bases_path / "correlation_r_value_{}m_{}ip.npy".format(
+            nmodes, npoints
+        )
         if common.skip_calculation(fname):
             logger.info("{} exists. Skipping.".format(fname.name))
             continue
@@ -373,7 +377,9 @@ def reconstruct_damage(common, nmodes, npoints):
     rvalue_bases_fn = common.get_bases_fname(common.config["rvalue_name"])
     rve_data_fn = common.datasets_path / common.rve_fname(nmodes, npoints)
     A = compute_system(rve_data_fn, rvalue_bases_fn, nmodes)
-    fname = common.bases_path / "correlation_r_value_{}m_{}ip.npy".format(nmodes, npoints)
+    fname = common.bases_path / "correlation_r_value_{}m_{}ip.npy".format(
+        nmodes, npoints
+    )
     logger.info("Saving {}".format(fname))
     numpy.save(fname, A)
     return

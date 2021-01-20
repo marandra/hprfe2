@@ -59,7 +59,9 @@ def create_case_dir(case, strain, validation=False):
     p = json.loads(m_prop.read_text())
     p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = strain
     # TODO: Fix the path, it need root_path. This is a workaround
-    p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str((case/"../..").resolve())
+    p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
+        (case / "../..").resolve()
+    )
     c_prop = case / "ProjectParameters.json"  # destination case properties file
     c_prop.write_text(json.dumps(p, indent=4))
     # customize no-output properties (for speedup calc) in validation cases
@@ -303,6 +305,7 @@ def detect_elastic_range(case):
     import KratosMultiphysics
     import KratosMultiphysics.StructuralMechanicsApplication
     import KratosMultiphysics.MultiscaleROMApplication.periodic_bc_analysis as periodic_bc_analysis
+
     # import KratosMultiphysics.MultiscaleROMApplication.periodic_bc_analysis_xz as periodic_bc_analysis
 
     param = json.loads((case / "ProjectParameters.json").resolve().read_text())

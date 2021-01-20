@@ -413,7 +413,9 @@ def run(common):
         for m in common.config["rve_data_modes"]:
             for p in common.ip_subsets:
                 rve_path = (
-                    common.multiscale_path / common.case_name(c) / "_{}m_{}ip".format(m, p)
+                    common.multiscale_path
+                    / common.case_name(c)
+                    / "_{}m_{}ip".format(m, p)
                 ).resolve()
                 create_case_dir(rve_path, common.training_path, common.datasets_path)
                 create_launch_script(rve_path)
