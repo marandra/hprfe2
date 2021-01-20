@@ -389,17 +389,17 @@ def optimize_timesteps(case, te):
     param["solver_settings"]["time_stepping"]["time_step_table"] = ts_table
     (case / "ProjectParameters.json").resolve().write_text(json.dumps(param, indent=4))
 
+
 def print_histogram(values, bins=20, t0=0, t1=1):
+    text = "Elastic range distribution:\n\n"
     B = [0] * bins
     for v in values:
-        b = int(v / (t1-t0) * bins)
+        b = int(v / (t1 - t0) * bins)
         B[b] += 1
-    print()
-    print("Elastic range distribution:")
     for i, c in enumerate(B):
-        print("{:0.2f}: {:>3d} |{}".format(i*(t1-t0)/bins, c, "*" * c))
-    print()
-    return
+        text += "{:0.2f}: {:>3d} |{}\n".format(i * (t1 - t0) / bins, c, "*" * c)
+    return text
+
 
 def learn(common, args):
     # Deploy file structure for sampling
@@ -424,14 +424,8 @@ def learn(common, args):
         case_path = common.training_path / common.case_name(i)
         tc = float((case_path / "elastic.dat").read_text().splitlines()[-1])
         values.append(tc)
-        #if tc < 0.01 or tc > 0.99:
-        #    logger.warning(
-        #        "Elastic region for case {} is outside 0.01 - 0.99 range.".format(
-        #            str(common.case_name(i))
-        #        )
-        #    )
-        #print(tc)
-    print_histogram(values, bins=20, t0=0, t1=1)
+    hist = print_histogram(values, bins=20, t0=0, t1=1)
+    logger.info(hist)
 
     # Adapt params
     for i, line in enumerate(strain_set):
