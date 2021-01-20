@@ -406,7 +406,7 @@ def run(common):
     dest.write_text(PARAMS)
     dest = common.multiscale_path / "MainKratos.py"
     dest.write_text(MAIN)
-    logger.info("Writen template files")
+    logger.info("Written template files")
 
     # Create case structure
     for c in common.config["validation_dataset"]:

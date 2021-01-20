@@ -295,7 +295,7 @@ def launch_scripts(common):
         create_run_script(case_path)
         logger.debug("{} {}".format(case_path.name, strain_vector))
     create_launchers(common.training_path)
-    logger.info("Writen launch scripts".format(i + 1))
+    logger.info("Written launch scripts".format(i + 1))
     return
 
 
