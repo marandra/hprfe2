@@ -113,7 +113,7 @@ class Common:
         self.config = validate_config(self.defaults, config_user)
 
         # file management
-        self.root_path = root_path
+        self.root_path = root_path.resolve()
         self.config_file = self.root_path / config_fname
         self.training_path = self.root_path / self.config["training_path"]
         self.bases_path = self.root_path / self.config["bases_path"]
