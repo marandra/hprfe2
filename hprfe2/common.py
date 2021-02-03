@@ -98,7 +98,7 @@ class Common:
             "roc_fname_pattern": "roc_{}ip",
             # base + roc datasets stuff
             "datasets_path": "datasets",
-            "rve_fname_pattern": "rve_{}m_{}ip.json",
+            "rve_fname_pattern": "rve{}_{}m_{}ip.json",
             "correl_matrix_strain_pattern": "correlation_strain_{}.npy",
             "correl_matrix_damage_pattern": "correlation_r_value_{}.npy",
             # multiscale files stuff
@@ -196,11 +196,11 @@ class Common:
         """
         return self.roc_fname_pattern.format(points)
 
-    def rve_fname(self, modes, points):
+    def rve_fname(self, order, modes, points):
         """
         docstrings here
         """
-        return self.rve_fname_pattern.format(modes, points)
+        return self.rve_fname_pattern.format(order, modes, points)
 
     def skip_calculation(self, fname):
         """
@@ -243,9 +243,9 @@ if __name__ == "__main__":
     print(C.roc_fname("1000"))
     print(C.roc_fname(1000))
     print(C.roc_fname("ROM"))
-    print(C.rve_fname(20, "1"))
-    print(C.rve_fname(20, "100"))
-    print(C.rve_fname(200, "1000"))
-    print(C.rve_fname(200, 1000))
-    print(C.rve_fname("2000", "ROM"))
+    print(C.rve_fname(1, 20, "1"))
+    print(C.rve_fname(1, 20, "100"))
+    print(C.rve_fname(1, 200, "1000"))
+    print(C.rve_fname(1, 200, 1000))
+    print(C.rve_fname(1, "2000", "ROM"))
     print(C.ip_subsets)

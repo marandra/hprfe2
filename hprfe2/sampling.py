@@ -2,7 +2,7 @@
 
 Usage:
     hprfe2 [-v] [-r PATH] sample deploy [-t PATH] [-a NUM|-s FILE]
-    hprfe2 [-v] [-r PATH] sample learn [-f]
+    hprfe2 [-v] [-r PATH] sample learn [-f|-c CASE]
     hprfe2 [-v] [-r PATH] sample launcher
 
 Arguments:
@@ -14,6 +14,7 @@ Arguments:
     -a NUM --auto-strain=NUM  Generates strain set of NUM vectors
                               (in the positive quadrant)
     -f --force                Do not skip cases with previous learning results
+    -c CASE --case=CASE       Optimize specified case only
 
 Commands:
     deploy                    Create sampling file structure and launch scripts, using
@@ -50,7 +51,7 @@ TEMPL_FN = [
 ]
 
 
-def create_case_dir(case, strain, validation=False):
+def create_case_dir(common, case, strain, validation=False):
     # create dest dir
     case.mkdir(exist_ok=True)
 
@@ -60,7 +61,7 @@ def create_case_dir(case, strain, validation=False):
     p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = strain
     # TODO: Fix the path, it need root_path. This is a workaround
     p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
-        (case / "../..").resolve()
+        common.root_path
     )
     c_prop = case / "ProjectParameters.json"  # destination case properties file
     c_prop.write_text(json.dumps(p, indent=4))
@@ -76,7 +77,7 @@ def create_case_dir(case, strain, validation=False):
     dest = case / "MainKratos.py"
     dest.write_text(src.read_text())
 
-    # copy model.mdpa
+    # link model.mdpa
     src = case.parent / "model.mdpa"
     dest = case / "model.mdpa"
     dest.unlink(missing_ok=True)  # Remove it before hard-linking it
@@ -86,6 +87,12 @@ def create_case_dir(case, strain, validation=False):
     src = case.parent / "materials.json"
     dest = case / "materials.json"
     dest.write_text(src.read_text())
+    # and link rve data if present
+    srcs = case.parent.glob(common.rve_fname("?", "*", "*"))
+    for src in srcs:
+        dest = case / src.name
+        dest.unlink(missing_ok=True)  # Remove it before hard-linking it
+        src.link_to(dest)  # Create hard link to save space (instead of copy)
 
     return
 
@@ -244,6 +251,11 @@ def deploy(common, args):
             src = path / f
             dest = common.training_path / f
             dest.write_text(src.read_text())
+        # Copy RVE materials, if present
+        srcs = path.glob(common.rve_fname("?", "*", "*"))
+        for src in srcs:
+            dest = common.training_path / src.name
+            dest.write_bytes(src.read_bytes())
         logger.info("Template files copied to sampling directory")
     else:
         logger.info("Using existing template files in directory")
@@ -277,7 +289,7 @@ def deploy(common, args):
         if i in common.config["validation_dataset"]:
             validation = True
             logger.info("Case {} set as validation case".format(i))
-        create_case_dir(case_path, strain_vector, validation)
+        create_case_dir(common, case_path, strain_vector, validation)
         create_run_script(case_path)
         logger.debug("{} {}".format(case_path.name, strain_vector))
     logger.info("Created {} sampling cases".format(i + 1))
@@ -301,7 +313,33 @@ def launch_scripts(common):
     return
 
 
-def detect_elastic_range(case):
+def adjust_elastic_range(case, outfile="elastic.dat"):
+    '''Adjust the time range to fit the elastic region in the first part of the time span'''
+    t0 = 0.
+    t1 = 1.
+    rt = 0.
+    max_iter = 5
+    i = 0
+    fo = (case / outfile).open("w")
+    while i < max_iter:
+        fo.write(f"Iteration {i}/{max_iter}: {t0:.2f} - {t1:.2f}\n")
+        te, te0, te1 = detect_elastic_range(case, t0, t1, fo)
+        rt = te / (t1 - t0)
+        fo.write(f"{t0:.3f}  {t1:.3f}  {te:.3f} (e={int((te1-te0)/(t1-t0)*100)}%) {int(rt*100)}% \n")
+        if rt < 0.10:
+            t1 /= 1.6
+        elif rt > 0.45:
+            t1 *= 2
+        else:
+            break
+        i += 1
+
+def detect_elastic_range(case, t0, t1, fo):
+    '''
+Performs several 1-timestep runs to find the boundary of the elastic range.
+It receives the time range in which to look
+'''
+
     import KratosMultiphysics
     import KratosMultiphysics.StructuralMechanicsApplication
     import KratosMultiphysics.MultiscaleROMApplication.periodic_bc_analysis as periodic_bc_analysis
@@ -310,7 +348,11 @@ def detect_elastic_range(case):
 
     param = json.loads((case / "ProjectParameters.json").resolve().read_text())
 
-    #  Replace processes with is_elastic
+    #  Adapt params
+    param["problem_data"]["echo_level"] = 0
+    param["solver_settings"]["echo_level"] = 0
+    param["solver_settings"]["line_search"] = False
+    param["solver_settings"]["max_iteration"] = 1
     param["processes"]["my_processes"] = {}
     block = {
         "Parameters": {
@@ -318,8 +360,8 @@ def detect_elastic_range(case):
             "filename": str(case / "is_elastic.tmp"),
         },
         "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
-        "process_name": "IsElastic",
-        "python_module": "kratos_process_is_elastic",
+        "process_name": "IsInelastic",
+        "python_module": "kratos_process_is_inelastic",
     }
     param["processes"]["my_processes"] = [block]
     #  Adapt model and material files
@@ -330,13 +372,9 @@ def detect_elastic_range(case):
         (case / "materials.json").resolve()
     )
 
-    # Get params and perform binary search
-    t0 = param["problem_data"]["start_time"]
-    t1 = param["problem_data"]["end_time"]
-
     text = ""
-    min_dt = (t1 - t0) / 100  # To find it in ~5 iterations
-    max_iter = 10
+    min_dt = (t1 - t0) / 10  # 10:~4 iters, 30:~5, 100:~7
+    max_iter = 7
     i = 0
     while (t1 - t0) > min_dt and i < max_iter:
         t = t0 + (t1 - t0) / 2
@@ -359,34 +397,33 @@ def detect_elastic_range(case):
         else:
             t1 = t
 
-        line = "{:.4f} - {:.4f} - Elastic: {}\n".format(t0, t1, elastic)
+        line = f"   {t0:.4f} - {t1:.4f} - Elastic: {elastic}\n"
         i += 1
         text += line
-    text += "{:.2f}\n".format(t)
-    (case / "elastic.dat").write_text(text)
+    fo.write(text)
     (case / "is_elastic.tmp").unlink()
+    return t, t0, t1
 
 
-def optimize_timesteps(case, te):
+def optimize_timesteps(case, t0, t1, te):
 
-    param = json.loads((case / "ProjectParameters.json").resolve().read_text())
 
-    t0 = param["problem_data"]["start_time"]
-    tf = param["problem_data"]["end_time"]
-    dt = (tf - t0) / 40  # HARCODED, optimization parameter
 
     #
-    #       fix, 5 ts        fine, dt/2                 coarse, dt*2
+    #       fix, 4 ts        fine, dt/2                 coarse, dt*2
     #   t0  .  .  .  . te  . ..t1..... . .   .   t2   .   .   .   .   tf
     #
-
+    dt = (t1 - t0) / 40  # HARCODED, optimization parameter
     ts_table = [
         [t0, (te - t0) / 4],
         [te - (te - t0) * 0.2, (te - t0) / 4],
-        [te + (tf - te) * 0.0, dt / 2],
-        [te + (tf - te) * 0.4, dt * 2],
+        [te + (t1 - te) * 0.0, dt / 2],
+        [te + (t1 - te) * 0.4, dt * 2],
     ]
 
+    param = json.loads((case / "ProjectParameters.json").resolve().read_text())
+    param["problem_data"]["start_time"] = t0
+    param["problem_data"]["end_time"] = t1
     param["solver_settings"]["time_stepping"] = {}
     param["solver_settings"]["time_stepping"]["automatic_time_step"] = False
     param["solver_settings"]["time_stepping"]["time_step_table"] = ts_table
@@ -409,32 +446,44 @@ def learn(common, args):
     src = common.training_path / STRAIN_FN[0]
     strain_set = src.read_text().splitlines()
 
-    # Detect range
-    skipped = []
-    for i, line in enumerate(strain_set):
-        case_path = common.training_path / common.case_name(i)
-        if (case_path / "elastic.dat").exists() and not args["--force"]:
-            skipped.append(i)
-            continue
-        detect_elastic_range(case_path)
-    if len(skipped) > 0:
-        logger.info("Skipped cases with existing file '{}'".format("elastic.dat"))
-        logger.debug("{}".format(skipped))
+    # Adjust elastic range by setting appropiate "tf"
+    if args["--case"]:
+        case = int(args["--case"])
+        for line in [strain_set[case]]:
+            case_path = common.training_path / common.case_name(case)
+            adjust_elastic_range(case_path)
+    else:
+        skipped = []
+        for i, line in enumerate(strain_set):
+            case_path = common.training_path / common.case_name(i)
+            if (case_path / "elastic.dat").exists() and not args["--force"]:
+                skipped.append(i)
+                continue
+            adjust_elastic_range(case_path)
+        if len(skipped) > 0:
+            logger.info("Skipped cases with existing file '{}'".format("elastic.dat"))
+            logger.debug("{}".format(skipped))
 
     # Process results
     values = []
     for i, line in enumerate(strain_set):
         case_path = common.training_path / common.case_name(i)
-        tc = float((case_path / "elastic.dat").read_text().splitlines()[-1])
+        line = (case_path / "elastic.dat").read_text().splitlines()[-1]
+        t0, t1, te = [float(x) for x in line.split()[0:3]]
+        tc = te / (t1 - t0)
         values.append(tc)
-    hist = print_histogram(values, bins=20, t0=0, t1=1)
+    hist = print_histogram(values, bins=20)
     logger.info(hist)
 
     # Adapt params
     for i, line in enumerate(strain_set):
         case_path = common.training_path / common.case_name(i)
-        tc = float((case_path / "elastic.dat").read_text().splitlines()[-1])
-        optimize_timesteps(case_path, tc)
+        line = (case_path / "elastic.dat").read_text().splitlines()[-1]
+        t0, t1, te = [float(x) for x in line.split()[0:3]]
+        #t0 = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[0])
+        #t1 = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[1])
+        #te = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[2])
+        optimize_timesteps(case_path, t0, t1, te)
     logger.info("Optimized timesteps in ProjectParameters.json")
 
     return

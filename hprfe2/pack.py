@@ -130,7 +130,8 @@ def write_datasets(common):
         roc_filename = common.bases_path / common.roc_fname(p)
         ip_set = numpy.loadtxt(roc_filename)
         for m in common.config["rve_data_modes"]:
-            rve_fname = common.datasets_path / common.rve_fname(m, p)
+            # TODO: added "9" as a workaround while we find the rigth heuristics
+            rve_fname = common.datasets_path / common.rve_fname(9, m, p)
             if common.skip_calculation(rve_fname):
                 logger.info("File {} exists. Skipping calculation".format(rve_fname))
                 continue
