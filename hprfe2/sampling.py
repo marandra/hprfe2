@@ -22,13 +22,13 @@ Commands:
     learn                     Run optimization steps
     launcher                  Write launcher scripts
 
-Creates file structure for the sampling. If a path is pass with the -t option, 
+Creates file structure for the sampling. If a path is pass with the -t option,
 it copies template from path, else, it assumes files are already present in the
 sampling directory. It requires a file with strain vectors (Voigt notation) for
-the generation of the cases. If an integer value between 1 and 63 is passed with 
+the generation of the cases. If an integer value between 1 and 63 is passed with
 the -a option, it generates a strain file.
 
-Passing the 'learn' command performs a detection of the elastic range, and adjust 
+Passing the 'learn' command performs a detection of the elastic range, and adjust
 the timestep accodingly.
 """
 
