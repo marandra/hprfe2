@@ -88,7 +88,7 @@ def create_case_dir(common, case, strain, validation=False):
     dest = case / "materials.json"
     dest.write_text(src.read_text())
     # and link rve data if present
-    srcs = case.parent.glob(common.rve_fname("?", "*", "*"))
+    srcs = case.parent.glob(common.rve_fname("*", "*", "*"))
     for src in srcs:
         dest = case / src.name
         dest.unlink(missing_ok=True)  # Remove it before hard-linking it
@@ -252,7 +252,7 @@ def deploy(common, args):
             dest = common.training_path / f
             dest.write_text(src.read_text())
         # Copy RVE materials, if present
-        srcs = path.glob(common.rve_fname("?", "*", "*"))
+        srcs = path.glob(common.rve_fname("*", "*", "*"))
         for src in srcs:
             dest = common.training_path / src.name
             dest.write_bytes(src.read_bytes())
