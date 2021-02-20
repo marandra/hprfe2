@@ -99,7 +99,7 @@ def create_case_dir(common, case, strain, validation=False):
 
 def create_run_script(case):
     """
-    Writes temporary launch script for each case (run externally)
+    Writes temporary launch script for each case (to be run externally)
     """
 
     script_fname = "tmp_" + case.name + ".bash"
@@ -108,6 +108,7 @@ export OMP_NUM_THREADS=1
 export PYTHONPATH={}
 export LD_LIBRARY_PATH={}
 cd {}
+learn.py
 /usr/bin/time -v -o time.dat python MainKratos.py > outMainKratos
 #/usr/bin/time -v -o time_quiet.dat python MainKratos.py ProjectParameters_quiet.json > outMainKratos_quiet
 cd ..
