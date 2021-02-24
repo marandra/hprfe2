@@ -51,76 +51,6 @@ TEMPL_FN = [
 ]
 
 
-def create_case_dir(common, case, strain, validation=False):
-    # create dest dir
-    case.mkdir(exist_ok=True)
-
-    # customize properties
-    m_prop = case.parent / "ProjectParameters.json"  # template properties file
-    p = json.loads(m_prop.read_text())
-    p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = strain
-    # TODO: Fix the path, it need root_path. This is a workaround
-    p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
-        common.root_path
-    )
-    c_prop = case / "ProjectParameters.json"  # destination case properties file
-    c_prop.write_text(json.dumps(p, indent=4))
-    # customize no-output properties (for speedup calc) in validation cases
-    if validation:
-        p["processes"]["my_processes"] = []
-        p["output_processes"] = {}
-        c_prop = case / "ProjectParameters_quiet.json"
-        c_prop.write_text(json.dumps(p, indent=4))
-
-    # copy MainKratos.py
-    src = case.parent / "MainKratos.py"
-    dest = case / "MainKratos.py"
-    dest.write_text(src.read_text())
-
-    # link model.mdpa
-    src = case.parent / "model.mdpa"
-    dest = case / "model.mdpa"
-    dest.unlink(missing_ok=True)  # Remove it before hard-linking it
-    src.link_to(dest)  # Create hard link to save space (instead of copy)
-
-    # copy materials.json
-    src = case.parent / "materials.json"
-    dest = case / "materials.json"
-    dest.write_text(src.read_text())
-    # and link rve data if present
-    srcs = case.parent.glob(common.rve_fname("*", "*", "*"))
-    for src in srcs:
-        dest = case / src.name
-        dest.unlink(missing_ok=True)  # Remove it before hard-linking it
-        src.link_to(dest)  # Create hard link to save space (instead of copy)
-
-    return
-
-
-def create_run_script(case):
-    """
-    Writes temporary launch script for each case (to be run externally)
-    """
-
-    script_fname = "tmp_" + case.name + ".bash"
-    script = """\
-export OMP_NUM_THREADS=1
-export PYTHONPATH={}
-export LD_LIBRARY_PATH={}
-cd {}
-learn.py
-/usr/bin/time -v -o time.dat python MainKratos.py > outMainKratos
-#/usr/bin/time -v -o time_quiet.dat python MainKratos.py ProjectParameters_quiet.json > outMainKratos_quiet
-cd ..
-rm {}
-""".format(
-        os.environ["PYTHONPATH"],
-        os.environ["LD_LIBRARY_PATH"],
-        case.name,
-        script_fname,
-    )
-    (case.parent / script_fname).write_text(script)
-
 
 def create_launchers(path):
     """Create auxiliary files for running cases"""
@@ -133,20 +63,12 @@ def create_launchers(path):
 #SBATCH --ntasks=1
 #SBATCH --array=00-40
 
-## Settings for "fiber2" case:
-##
 #SBATCH --partition=HM
-#SBATCH --mem-per-cpu=1024
-#SBATCH --time=03:00:00
-
-## Settings for "fiber3" case:
-##
-##SBATCH --partition=HM
-##SBATCH --mem-per-cpu=????
-##SBATCH --time=????
+##SBATCH --mem-per-cpu=1024
+##SBATCH --time=03:00:00
 
 export OMP_NUM_THREADS=1
-printf -v ID "%02d" $SLURM_ARRAY_TASK_ID
+printf -v ID "%03d" $SLURM_ARRAY_TASK_ID
 bash tmp_case_${ID}.bash
 """
     (path / fname).write_text(script)
@@ -176,9 +98,8 @@ done
     (path / fname).write_text(script)
 
 
-def deploy(common, args):
-    # CHECKS:
-
+def check_template_files(common, args):
+    # Check template files:
     # if no template path, files must be present
     if args["--template"] is None:
         for f in TEMPL_FN:
@@ -238,8 +159,7 @@ def deploy(common, args):
         )
         exit()
 
-    # TASKS
-
+def gather_template_files(common, args):
     # Create directory if not present already
     if not common.training_path.exists():
         common.training_path.mkdir()
@@ -280,45 +200,119 @@ def deploy(common, args):
         dest.write_text(text)
         logger.info("Strain file generated ({} vectors)".format(n))
 
-    # Deploy file structure for sampling
-    src = common.training_path / STRAIN_FN[0]
-    strain_set = src.read_text().splitlines()
-    for i, line in enumerate(strain_set):
-        validation = False
-        case_path = common.training_path / common.case_name(i)
-        strain_vector = [float(x) for x in line.split()]
-        if i in common.config["validation_dataset"]:
-            validation = True
-            logger.info("Case {} set as validation case".format(i))
-        create_case_dir(common, case_path, strain_vector, validation)
-        create_run_script(case_path)
-        logger.debug("{} {}".format(case_path.name, strain_vector))
-    logger.info("Created {} sampling cases".format(i + 1))
-    return
+
+class Sampling():
+    def __init__(self, common, args):
+        self.common = common
+        self.args = args
+
+    def check_template(self):
+        check_template_files(self.common, self.args)
+        gather_template_files(self.common, self.args)
+
+    def generate_cases(self):
+        # Generate cases
+        src = self.common.training_path / STRAIN_FN[0]
+        strain_set = src.read_text().splitlines()
+        self.cases = []
+        for i, line in enumerate(strain_set):
+            strain = [float(x) for x in line.split()]
+            case = Case(self.common, i, strain)
+            if i in self.common.config["validation_dataset"]:
+                case.is_validation = True
+                logger.info(f"Case {i} set as validation case")
+                # logger.info("Case {} set as validation case".format(i))
+            self.cases.append(case)
+
+    def deploy_cases(self):
+        # Deploy file structure for sampling
+        for c in self.cases:
+            c.create_directory(self.common)
+            c.create_script()
+            logger.debug(f"{c.name} {c.strain}")
+            # logger.debug("{} {}".format(c.name, c.strain))
+        logger.info(f"Created {len(self.cases)} sampling cases")
+        # logger.info("Created {} sampling cases".format(len(cases)))
+        create_launchers(self.common.training_path)
+        logger.info("Written launch scripts")
 
 
-def launch_scripts(common):
-    # Write launcher scripts
-    src = common.training_path / STRAIN_FN[0]
-    strain_set = src.read_text().splitlines()
-    for i, line in enumerate(strain_set):
-        validation = False
-        case_path = common.training_path / common.case_name(i)
-        strain_vector = [float(x) for x in line.split()]
-        if i in common.config["validation_dataset"]:
-            validation = True
-        create_run_script(case_path)
-        logger.debug("{} {}".format(case_path.name, strain_vector))
-    create_launchers(common.training_path)
-    logger.info("Written launch scripts".format(i + 1))
-    return
+class Case():
+    def __init__(self, common, i, strain_vector, is_validation=False):
+        self.name = common.case_name(i)
+        self.path = common.training_path / self.name
+        self.strain = strain_vector
+        self.is_validation = is_validation
+
+    def create_directory(self, common):
+        # create dest dir
+        self.path.mkdir(exist_ok=True)
+
+        # customize properties
+        m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
+        p = json.loads(m_prop.read_text())
+        p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = self.strain
+        # TODO: Fix the path, it need root_path. This is a workaround
+        p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
+            common.root_path
+        )
+        c_prop = self.path / "ProjectParameters.json"  # destination case properties file
+        c_prop.write_text(json.dumps(p, indent=4))
+        # customize no-output properties (for speedup calc) in validation cases
+        if self.is_validation:
+            p["processes"]["my_processes"] = []
+            p["output_processes"] = {}
+            c_prop = self.path / "ProjectParameters_quiet.json"
+            c_prop.write_text(json.dumps(p, indent=4))
+
+        # copy MainKratos.py
+        src = self.path.parent / "MainKratos.py"
+        dest = self.path / "MainKratos.py"
+        dest.write_text(src.read_text())
+
+        # link model.mdpa
+        src = self.path.parent / "model.mdpa"
+        dest = self.path / "model.mdpa"
+        dest.unlink(missing_ok=True)  # Remove it before hard-linking it
+        src.link_to(dest)  # Create hard link to save space (instead of copy)
+
+        # copy materials.json
+        src = self.path.parent / "materials.json"
+        dest = self.path / "materials.json"
+        dest.write_text(src.read_text())
+        # and link rve data if present
+        srcs = self.path.parent.glob(common.rve_fname("*", "*", "*"))
+        for src in srcs:
+            dest = self.path / src.name
+            dest.unlink(missing_ok=True)  # Remove it before hard-linking it
+            src.link_to(dest)  # Create hard link to save space (instead of copy)
+
+    def create_script(self):
+        """
+        Writes temporary launch script for each case (to be run externally)
+        """
+        script_fname = "tmp_" + self.name + ".bash"
+        script = ""
+        script += "export OMP_NUM_THREADS=1\n"
+        script += "export PYTHONPATH={}\n".format(os.environ["PYTHONPATH"])
+        script += "export LD_LIBRARY_PATH={}\n".format(os.environ["LD_LIBRARY_PATH"])
+        script += "cd {}\n".format(self.name)
+        if False:
+            script += "learn.py\n"
+        script += "python MainKratos.py > outMainKratos\n"
+        if self.is_validation:
+            script += "/usr/bin/time -v -o time.dat python MainKratos.py "
+            script += "ProjectParameters_quiet.json > outMainKratos_quiet\n"
+        script += "cd ..\n"
+        script += "rm {}\n".format(script_fname)
+        (self.path.parent / script_fname).write_text(script)
 
 
 def adjust_elastic_range(case, outfile="elastic.dat"):
-    '''Adjust the time range to fit the elastic region in the first part of the time span'''
-    t0 = 0.
-    t1 = 1.
-    rt = 0.
+    """Adjust the time range to fit the elastic region in the first part of the time span"""
+    t0 = 0.0
+    t1 = 1.0
+    rt = 0.0
     max_iter = 5
     i = 0
     fo = (case / outfile).open("w")
@@ -326,7 +320,9 @@ def adjust_elastic_range(case, outfile="elastic.dat"):
         fo.write(f"Iteration {i}/{max_iter}: {t0:.2f} - {t1:.2f}\n")
         te, te0, te1 = detect_elastic_range(case, t0, t1, fo)
         rt = te / (t1 - t0)
-        fo.write(f"{t0:.3f}  {t1:.3f}  {te:.3f} (e={int((te1-te0)/(t1-t0)*100)}%) {int(rt*100)}% \n")
+        fo.write(
+            f"{t0:.3f}  {t1:.3f}  {te:.3f} (e={int((te1-te0)/(t1-t0)*100)}%) {int(rt*100)}% \n"
+        )
         if rt < 0.10:
             t1 /= 1.6
         elif rt > 0.45:
@@ -335,11 +331,11 @@ def adjust_elastic_range(case, outfile="elastic.dat"):
             break
         i += 1
 
+
 def detect_elastic_range(case, t0, t1, fo):
-    '''
-Performs several 1-timestep runs to find the boundary of the elastic range.
-It receives the time range in which to look
-'''
+    """
+    Performs several 1-timestep runs to find the boundary of the elastic range.
+    It receives the time range in which to look"""
 
     import KratosMultiphysics
     import KratosMultiphysics.StructuralMechanicsApplication
@@ -407,8 +403,6 @@ It receives the time range in which to look
 
 
 def optimize_timesteps(case, t0, t1, te):
-
-
 
     #
     #       fix, 4 ts        fine, dt/2                 coarse, dt*2
@@ -481,9 +475,9 @@ def learn(common, args):
         case_path = common.training_path / common.case_name(i)
         line = (case_path / "elastic.dat").read_text().splitlines()[-1]
         t0, t1, te = [float(x) for x in line.split()[0:3]]
-        #t0 = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[0])
-        #t1 = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[1])
-        #te = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[2])
+        # t0 = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[0])
+        # t1 = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[1])
+        # te = float((case_path / "elastic.dat").read_text().splitlines()[-1].split()[2])
         optimize_timesteps(case_path, t0, t1, te)
     logger.info("Optimized timesteps in ProjectParameters.json")
 
@@ -492,10 +486,14 @@ def learn(common, args):
 
 def run(common, args):
     if args["deploy"]:
-        deploy(common, args)
-        launch_scripts(common)
-    if args["launcher"]:
-        launch_scripts(common)
-    if args["learn"]:
-        learn(common, args)
-        launch_scripts(common)
+        #deploy(common, args)
+        sampling = Sampling(common, args)
+        sampling.check_template()
+        sampling.generate_cases()
+        sampling.deploy_cases()
+        #launch_scripts(common)
+    #if args["launcher"]:
+    #    launch_scripts(common)
+    #if args["learn"]:
+    #    learn(common, args)
+    #    launch_scripts(common)
