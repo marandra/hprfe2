@@ -227,9 +227,16 @@ if __name__ == "__main__":
     ROOT = Path(ARGS["--root"])
     C = common.Common(ROOT)
 
-    if not C.config_file.is_file() and ARGS["<command>"] != "config":
-        logger.error("{} not found. Correct root_path value?".format(C.config_file))
-        sys.exit()
+    if ARGS["<command>"] != "config":
+        if not C.config_file.is_file():  # config file not in "." directory
+            logger.warning(f"{C.config_file.name} not found in '{ROOT}', trying one level up.")
+            C = common.Common(ROOT / "..")  # try in the parent directory
+            if not C.config_file.is_file():  # not found in '..', stop.
+                logger.error(f"{C.config_file.name} not found in '{ROOT / '..'}'. " +
+                             f"Correct root_path value?")
+                sys.exit()
+            logger.warning(f"Loading {C.config_file.name} found in " +
+                           f"'{C.config_file.parent}'")
 
     # Launch tree
 
