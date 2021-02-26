@@ -27,28 +27,29 @@ from KratosMultiphysics.StructuralMechanicsApplication import (
 logger = logging.getLogger(__name__)
 
 
-def summary_material(props, offset="", count=None):
+def summary_material(props, count, level):
     """Add docstring"""
-    offset += "    "
+    level -= 1
+    offset = "    " * level
+    rve_nmodes = -1
     for prop in props:
         clname = prop["Material"]["constitutive_law"]["name"]
-        pid = prop["properties_id"]
-        line = f"{offset} "
-        if count is not None:
-            line += f"{count[pid]:6d}x "
-        line += f"property {pid:3d} '{prop['Material']['name']}'"
-        line += f" - {clname}"
-        print(line)
         if "RVELaw" in clname:
-            rve_fname = prop["Material"]["constitutive_law"]["Parameters"][
-                "rve_data_filename"
-            ]
-            rve_props, rve_count = get_properties_from_rve(rve_fname)
-            summary_material(rve_props, offset, rve_count)
+            rve_fname = prop["Material"]["constitutive_law"]["Parameters"][ "rve_data_filename" ]
+            rve_props, rve_count, rve_nmodes = get_properties_from_rve(rve_fname)
+            level = summary_material(rve_props, rve_count, level)
         # else:
         #    for k, v in prop['Material']['Variables'].items():
         #        print(f"{offset}   {k}: {v}")
         #    print()
+        pid = prop["properties_id"]
+        line = f"level {level}{offset} "
+        if count is not None:
+            line += f"{count[pid]:6d}x "
+        line += f"property {pid:3d} {rve_nmodes} '{prop['Material']['name']}'"
+        line += f" - {clname}"
+        print(line)
+    return level + 1
 
 
 def get_properties_from_rve(rve_fname):
@@ -60,7 +61,7 @@ def get_properties_from_rve(rve_fname):
         count[i] = 0
     for i in rve["ip_property_id"]:
         count[i] += 1
-    return props, count
+    return props, count, 10
 
 
 def load_case(case):
@@ -107,7 +108,8 @@ def run(case):
     print("Materials structure:")
     materials_path = case / "materials.json"
     properties = json.loads(materials_path.read_text())["properties"]
-    summary_material(properties, count=count)
+    summary_material(properties, count, 3)
+
 
 
 ####################3
