@@ -27,6 +27,61 @@ from KratosMultiphysics.StructuralMechanicsApplication import (
 logger = logging.getLogger(__name__)
 
 
+class Material():
+    """doc"""
+    def __init__(self, value, children):
+        self.prop = value
+        self.count = 0
+        self.children = children
+
+    def __repr__(self, level=0):
+        #line = f"level {level}{offset} "
+        #line += f"{count[pid]:6d}x "
+        #line += f"property {pid:3d} {rve_nmodes} '{prop['Material']['name']}'"
+        #line += f" - {clname}"
+        ret = ""
+        pid = self.prop["properties_id"]
+        #ret += "\t" * level + f"{self.count[pid]:6d}x id {pid:3d} {prop['model_part_name']}" + "\n"
+        ret += "\t" * level + f"{self.count:6d}x id {pid:3d} {self.prop['model_part_name']}" + "\n"
+        if self.children is not None:
+            for child in self.children:
+                ret += child.__repr__(level+1)
+        return ret
+
+def analyze(props):
+    """Add docstring"""
+    #rve_nmodes = -1
+    #print(material.count)
+    #print(material.props)
+    materials = []
+    for prop in props:
+        children = []
+        name = prop["Material"]["constitutive_law"]["name"]
+        if "RVELaw" in name:
+            rve_fname = prop["Material"]["constitutive_law"]["Parameters"][ "rve_data_filename" ]
+            rve_props, rve_count, rve_nmodes = get_properties_from_rve(rve_fname)
+            children = analyze(rve_props)
+
+        materials.append(Material(prop, children))
+        # else:
+        #    for k, v in prop['Material']['Variables'].items():
+        #        print(f"{offset}   {k}: {v}")
+        #    print()
+    return materials
+
+
+def get_properties_from_rve(rve_fname):
+    """Add docstring"""
+    rve = json.load(open(rve_fname, "r"))
+    props = rve["material_parameters"]["properties"]
+    count = {}
+    for i in set(rve["ip_property_id"]):
+        count[i] = 0
+    for i in rve["ip_property_id"]:
+        count[i] += 1
+    return props, count, 10
+
+
 def summary_material(props, count, level):
     """Add docstring"""
     level -= 1
@@ -50,18 +105,6 @@ def summary_material(props, count, level):
         line += f" - {clname}"
         print(line)
     return level + 1
-
-
-def get_properties_from_rve(rve_fname):
-    """Add docstring"""
-    rve = json.load(open(rve_fname, "r"))
-    props = rve["material_parameters"]["properties"]
-    count = {}
-    for i in set(rve["ip_property_id"]):
-        count[i] = 0
-    for i in rve["ip_property_id"]:
-        count[i] += 1
-    return props, count, 10
 
 
 def load_case(case):
@@ -98,17 +141,19 @@ def load_case(case):
         count[i] = idx.count(i)
     # simulation.RunSolutionLoop()
     # simulation.Finalize()
-    return count
+    props = json.loads(materials_p.read_text())["properties"]
+    return props, count
 
 
 def run(case):
     """Add docstring"""
-    count = load_case(case)
+    properties, count = load_case(case)
+    materials = analyze(properties)
     print()
     print("Materials structure:")
-    materials_path = case / "materials.json"
-    properties = json.loads(materials_path.read_text())["properties"]
-    summary_material(properties, count, 3)
+    #summary_material(properties, count, 3)
+    for material in materials:
+        print(material)
 
 
 
