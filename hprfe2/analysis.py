@@ -15,6 +15,7 @@ Summary of the model
 
 import logging
 import json
+from os import times
 from pathlib import Path
 import sys
 import KratosMultiphysics
@@ -26,47 +27,69 @@ from KratosMultiphysics.StructuralMechanicsApplication import (
 
 logger = logging.getLogger(__name__)
 
+RVE_TIME = 40.0e-6  # 40us
 
-class Material():
+class Material:
     """doc"""
-    def __init__(self, value, children):
+
+    def __init__(self, value, count, nmodes=0, children=None):
         self.prop = value
-        self.count = 0
+        self.count = count
+        self.nmodes = nmodes
         self.children = children
 
     def __repr__(self, level=0):
-        #line = f"level {level}{offset} "
-        #line += f"{count[pid]:6d}x "
-        #line += f"property {pid:3d} {rve_nmodes} '{prop['Material']['name']}'"
-        #line += f" - {clname}"
+        # tabulation
         ret = ""
+        ret += "    " * level
+
+        # quantity, id, part name
         pid = self.prop["properties_id"]
-        #ret += "\t" * level + f"{self.count[pid]:6d}x id {pid:3d} {prop['model_part_name']}" + "\n"
-        ret += "\t" * level + f"{self.count:6d}x id {pid:3d} {self.prop['model_part_name']}" + "\n"
+        ret += f"{self.count:6d}x id {pid:3d}: {self.prop['model_part_name']} "
+
+        # nr modes and nr points
+        if self.nmodes != 0:
+            nip = 0
+            for child in self.children:
+                nip += child.count
+            ret += f"({self.nmodes} modes, {nip} points)"
+
+        # eol
+        ret += "\n"
+
+        # recurse into children
         if self.children is not None:
             for child in self.children:
-                ret += child.__repr__(level+1)
+                ret += child.__repr__(level + 1)
+
         return ret
 
-def analyze(props):
+    def estimate_time(self):
+        """docs"""
+        children_time = 0.0
+        for child in self.children:
+            children_time += child.estimate_time()
+        return self.count * (RVE_TIME + 0.015 * self.nmodes**2 * children_time)
+
+
+def analyze(props, count):
     """Add docstring"""
-    #rve_nmodes = -1
-    #print(material.count)
-    #print(material.props)
     materials = []
     for prop in props:
+        nmodes = 0
         children = []
         name = prop["Material"]["constitutive_law"]["name"]
         if "RVELaw" in name:
-            rve_fname = prop["Material"]["constitutive_law"]["Parameters"][ "rve_data_filename" ]
-            rve_props, rve_count, rve_nmodes = get_properties_from_rve(rve_fname)
-            children = analyze(rve_props)
+            rve_fname = prop["Material"]["constitutive_law"]["Parameters"][
+                "rve_data_filename"
+            ]
+            rve_props, rve_count, nmodes = get_properties_from_rve(rve_fname)
+            children = analyze(rve_props, rve_count)
 
-        materials.append(Material(prop, children))
+        materials.append(Material(prop, count[prop["properties_id"]], nmodes, children))
         # else:
         #    for k, v in prop['Material']['Variables'].items():
         #        print(f"{offset}   {k}: {v}")
-        #    print()
     return materials
 
 
@@ -79,32 +102,8 @@ def get_properties_from_rve(rve_fname):
         count[i] = 0
     for i in rve["ip_property_id"]:
         count[i] += 1
-    return props, count, 10
-
-
-def summary_material(props, count, level):
-    """Add docstring"""
-    level -= 1
-    offset = "    " * level
-    rve_nmodes = -1
-    for prop in props:
-        clname = prop["Material"]["constitutive_law"]["name"]
-        if "RVELaw" in clname:
-            rve_fname = prop["Material"]["constitutive_law"]["Parameters"][ "rve_data_filename" ]
-            rve_props, rve_count, rve_nmodes = get_properties_from_rve(rve_fname)
-            level = summary_material(rve_props, rve_count, level)
-        # else:
-        #    for k, v in prop['Material']['Variables'].items():
-        #        print(f"{offset}   {k}: {v}")
-        #    print()
-        pid = prop["properties_id"]
-        line = f"level {level}{offset} "
-        if count is not None:
-            line += f"{count[pid]:6d}x "
-        line += f"property {pid:3d} {rve_nmodes} '{prop['Material']['name']}'"
-        line += f" - {clname}"
-        print(line)
-    return level + 1
+    nmodes = len(rve["ip_strain_modes"][0][0])
+    return props, count, nmodes
 
 
 def load_case(case):
@@ -112,7 +111,7 @@ def load_case(case):
     params = json.loads((case / "ProjectParameters.json").read_text())
 
     # make paths absolute
-    model_p = Path( params["solver_settings"]["model_import_settings"]["input_filename"])
+    model_p = Path(params["solver_settings"]["model_import_settings"]["input_filename"])
     if not model_p.is_absolute():
         model_p = case / model_p
     params["solver_settings"]["model_import_settings"]["input_filename"] = str(model_p)
@@ -148,13 +147,15 @@ def load_case(case):
 def run(case):
     """Add docstring"""
     properties, count = load_case(case)
-    materials = analyze(properties)
+    materials = analyze(properties, count)
     print()
     print("Materials structure:")
-    #summary_material(properties, count, 3)
     for material in materials:
         print(material)
-
+    time = 0
+    for material in materials:
+        time += material.estimate_time()
+    print(f"Total estimated time (per iteration): {time:0.6f}s")
 
 
 ####################3
