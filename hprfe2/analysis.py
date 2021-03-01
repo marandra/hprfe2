@@ -24,8 +24,10 @@ from KratosMultiphysics.StructuralMechanicsApplication import (
     structural_mechanics_analysis,
 )
 
+RVE0_CONST = 0.030e-3  # 1 iteration, evaluating 1 RVE0
+RVE1_CONST = 20.0e-7  #  const for solving system
+NL_ITER = 6  # average non-linear iterations and substep line search
 
-RVE_TIME = 40.0e-6  # 40us
 
 class Material:
     """doc"""
@@ -38,6 +40,7 @@ class Material:
 
     def __repr__(self, level=0):
         # tabulation
+        # ret = f"{self.estimate_time():0.6f}s"
         ret = ""
         ret += "    " * level
 
@@ -67,7 +70,10 @@ class Material:
         children_time = 0.0
         for child in self.children:
             children_time += child.estimate_time()
-        return self.count * (RVE_TIME + 0.015 * self.nmodes**2 * children_time)
+        unit_time = RVE0_CONST + NL_ITER * (
+            RVE1_CONST * self.nmodes ** 2 + children_time
+        )
+        return self.count * unit_time
 
 
 def analyze(props, count):
@@ -148,13 +154,17 @@ def run(case):
     properties, count = load_case(case)
     materials = analyze(properties, count)
     print()
-    print("Materials structure:")
+    print("Materials structure")
     for material in materials:
         print(material)
     time = 0
     for material in materials:
         time += material.estimate_time()
-    print(f"Total estimated time (per iteration): {time:0.6f}s")
+    print("Estimated times")
+    print(f" - one non-linear iteration: {time:0.6f}s")
+    print(f" - trajectory (40 linear iterations): {40 * time:0.6f}s")
+    print(f" - trajectory with output (validation): {1.3 * 40 * time:0.6f}s")
+    print(f" - trajectory with output (sampling): {4 * 40 * time:0.6f}s")
 
 
 ####################3
