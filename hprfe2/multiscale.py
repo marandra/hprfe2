@@ -22,14 +22,17 @@ from common import Common
 logger = logging.getLogger(__name__)
 
 MAIN = """
+import sys
 import KratosMultiphysics
 import KratosMultiphysics.StructuralMechanicsApplication
 import KratosMultiphysics.MultiscaleROMApplication
 from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_analysis import (
     StructuralMechanicsAnalysis,
 )
-
-with open("ProjectParameters.json", "r") as fp:
+fname = "ProjectParameters.json"
+if len(sys.argv) > 1:
+    fname = sys.argv[1]
+with open(fname, "r") as fp:
     parameters = KratosMultiphysics.Parameters(fp.read())
 model = KratosMultiphysics.Model()
 simulation = StructuralMechanicsAnalysis(model, parameters)
@@ -37,7 +40,7 @@ simulation.Run()
 """
 
 MATERIAL = """
-{  
+{
     "properties": [{
         "model_part_name": "Structure.MATERIAL_MULTISCALE",
         "properties_id": 1,
@@ -75,7 +78,7 @@ Begin Nodes
 End Nodes
 
 Begin Elements SmallDisplacementElement3D4N
-    1          0         4	 3	 2	 1 
+    1          0         4	 3	 2	 1
 End Elements
 
 Begin SubModelPart MATERIAL_MULTISCALE
@@ -205,7 +208,7 @@ PARAMS = """
                 "filename": "homogenized_stress.dat",
                 "variable_name": "CAUCHY_STRESS_VECTOR"
                 }
-            } 
+            }
         ],
         "list_initial_processes": [],
         "list_boundary_processes": [{
