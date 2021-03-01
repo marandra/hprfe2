@@ -133,7 +133,8 @@ def load_case(case):
     idx = []
     count = {}
     for elem in modelpart.Elements:
-        idx.append(elem.Properties.Id)
+        nip = len(elem.GetIntegrationPoints())
+        idx.extend([elem.Properties.Id] * nip)
     for i in set(idx):
         count[i] = idx.count(i)
     # simulation.RunSolutionLoop()
