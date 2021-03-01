@@ -13,19 +13,17 @@ Options:
 Summary of the model
 """
 
-import logging
 import json
-from os import times
 from pathlib import Path
 import sys
+
 import KratosMultiphysics
-import KratosMultiphysics.StructuralMechanicsApplication
 import KratosMultiphysics.MultiscaleROMApplication
+import KratosMultiphysics.StructuralMechanicsApplication
 from KratosMultiphysics.StructuralMechanicsApplication import (
     structural_mechanics_analysis,
 )
 
-logger = logging.getLogger(__name__)
 
 RVE_TIME = 40.0e-6  # 40us
 
