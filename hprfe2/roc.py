@@ -178,31 +178,26 @@ def write_ip_sets(common):
         structural_mechanics_analysis,
     )
 
-    parameters_dict = {
-        "problem_data": {
-            "problem_name": "High_Fidelity",
-            "parallel_type": "OpenMP",
-            "start_time": 0.0,
-            "end_time": 0.99,
-            "echo_level": 1,
-        },
-        "solver_settings": {
-            "model_part_name": "Microstructure",
-            "domain_size": 3,
-            "echo_level": 1,
-            "time_stepping": {},
-            "solver_type": "Static",
-            "model_import_settings": {
-                "input_type": "mdpa",
-                "input_filename": "{}/model".format(common.training_path),
-            },
-            "material_import_settings": {
-                "materials_filename": "{}/materials.json".format(common.training_path)
-            },
-        },
-    }
+    case = common.training_path
+    params = json.loads((case / "ProjectParameters.json").read_text())
 
-    parameters = KratosMultiphysics.Parameters(json.dumps(parameters_dict))
+    # remove processes
+    params["processes"]["my_processes"] = []
+    # make paths absolute
+    model_p = Path(params["solver_settings"]["model_import_settings"]["input_filename"])
+    if not model_p.is_absolute():
+        model_p = case / model_p
+    params["solver_settings"]["model_import_settings"]["input_filename"] = str(model_p)
+    materials_p = Path(
+        params["solver_settings"]["material_import_settings"]["materials_filename"]
+    )
+    if not materials_p.is_absolute():
+        materials_p = case / materials_p
+    params["solver_settings"]["material_import_settings"]["materials_filename"] = str(
+        materials_p
+    )
+
+    parameters = KratosMultiphysics.Parameters(json.dumps(params))
     model = KratosMultiphysics.Model()
     simulation = structural_mechanics_analysis.StructuralMechanicsAnalysis(
         model, parameters
