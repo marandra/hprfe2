@@ -251,7 +251,11 @@ class Case():
         # customize properties
         m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
         p = json.loads(m_prop.read_text())
-        p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = self.strain
+        print("DEBUG: READ SCALE FROM SOMEWHERE")
+        scale = 0.1 # DEBUG
+        vect = [f"{v} * t * (-1) * " + f"{scale}" for v in self.strain]
+        p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
+        #p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = self.strain
         # TODO: Fix the path, it need root_path. This is a workaround
         p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
             common.root_path
