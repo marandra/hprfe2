@@ -25,7 +25,7 @@ from KratosMultiphysics.StructuralMechanicsApplication import (
 )
 
 RVE0_CONST = 0.030e-3  # 1 iteration, evaluating 1 RVE0
-RVE1_CONST = 20.0e-7  #  const for solving system
+RVE1_CONST = 0.020e-6  #  const for solving system
 NL_ITER = 6  # average non-linear iterations and substep line search
 
 
@@ -114,6 +114,8 @@ def load_case(case):
     """displacement docstrings here """
     params = json.loads((case / "ProjectParameters.json").read_text())
 
+    # remove processes
+    params["processes"]["my_processes"] = []
     # make paths absolute
     model_p = Path(params["solver_settings"]["model_import_settings"]["input_filename"])
     if not model_p.is_absolute():
@@ -154,6 +156,8 @@ def run(case):
     properties, count = load_case(case)
     materials = analyze(properties, count)
     print()
+    print("-------------------------------------------------------------")
+    print()
     print("Materials structure")
     for material in materials:
         print(material)
@@ -161,10 +165,14 @@ def run(case):
     for material in materials:
         time += material.estimate_time()
     print("Estimated times")
-    print(f" - one non-linear iteration: {time:0.6f}s")
-    print(f" - trajectory (40 linear iterations): {40 * time:0.6f}s")
+    print(f" - one iteration: {time:0.6f}s")
+    print(
+        f" - trajectory (40 steps), no output:  {40 * time:0.6f}s - {2 * 40 * time:0.6f}s"
+    )
     print(f" - trajectory with output (validation): {1.3 * 40 * time:0.6f}s")
-    print(f" - trajectory with output (sampling): {4 * 40 * time:0.6f}s")
+    print(
+        f" - trajectory with output (sampling): {2 * 40 * time:0.6f}s - {3 * 40 * time:0.6f}s"
+    )
 
 
 ####################3
