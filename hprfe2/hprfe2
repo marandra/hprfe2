@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""
+"""\
 hprfe2
 Marcelo Raschi <marcelo.raschi@gmail.com>
 Utilities for HPRFE2 modal bases datasets
@@ -17,13 +17,12 @@ Options:
 
 Commands:
     config      Create default configuration file
-    sample      Create sampling datastructure and scripts from a given template case
+    deploy      Deploy sampling datastructure and scripts from a given template case
     generate    Generate bases and IP sets
     resources   Create datasets for fields reconstruction
     validate    Generate 1ip-multiscale validation cases
 
-See 'hprfe2 <command> help' for more information on a specific command.
-
+See 'hprfe2 <command> help' for more information on a specific command.\
 """
 # TODO
 # get rid of Kratos banner!
@@ -85,7 +84,6 @@ import multiscale
 
 def config(args):
     """\
-
 Usage:
     hprfe2 config [--advanced|--full]
 
@@ -93,8 +91,7 @@ Arguments:
     -a --advanced  basic and advanced user options
     -f --full      basic, advanced and and system options
 
-Writes an initial configuration file with default values at root path.
-"""
+Writes an initial configuration file with default values at root path."""
 
     # Don't overwrite existing configuration file
     if C.config_file.is_file():
@@ -117,7 +114,6 @@ Writes an initial configuration file with default values at root path.
 
 def generate(common, args):
     """\
-
 Usage:
     hprfe2 [-v] [-r PATH] generate [-f]
 
@@ -128,8 +124,7 @@ Arguments:
                               configuration file must be located [default: .]
 
 Computes modal bases of energy, strain and damage, from snapshot of the solutions
-obtained in the sampling stage.
-"""
+obtained in the sampling stage."""
 
     # Create directory if not present already
     for p in [common.bases_path, common.datasets_path]:
@@ -227,16 +222,25 @@ if __name__ == "__main__":
     ROOT = Path(ARGS["--root"])
     C = common.Common(ROOT)
 
-    if ARGS["<command>"] != "config":
+    if (
+        ARGS["<command>"] != "config"
+        and "help" not in ARGS["<command>"]
+        and "help" not in ARGS["<args>"]
+    ):
         if not C.config_file.is_file():  # config file not in "." directory
-            logger.warning(f"{C.config_file.name} not found in '{ROOT}', trying one level up.")
+            logger.warning(
+                f"{C.config_file.name} not found in '{ROOT}', trying one level up."
+            )
             C = common.Common(ROOT / "..")  # try in the parent directory
             if not C.config_file.is_file():  # not found in '..', stop.
-                logger.error(f"{C.config_file.name} not found in '{ROOT / '..'}'. " +
-                             f"Correct root_path value?")
+                logger.error(
+                    f"{C.config_file.name} not found in '{ROOT / '..'}'. "
+                    + f"Correct root_path value?"
+                )
                 sys.exit()
-            logger.warning(f"Loading {C.config_file.name} found in " +
-                           f"'{C.config_file.parent}'")
+            logger.warning(
+                f"Loading {C.config_file.name} found in " + f"'{C.config_file.parent}'"
+            )
 
     # Launch tree
 
@@ -246,7 +250,7 @@ if __name__ == "__main__":
         subargs = docopt(config.__doc__)
         config(subargs)
 
-    elif ARGS["<command>"] == "sample":
+    elif ARGS["<command>"] == "deploy":
         if "help" in ARGS["<args>"]:
             exit(sampling.__doc__)
         subargs = docopt(sampling.__doc__)
