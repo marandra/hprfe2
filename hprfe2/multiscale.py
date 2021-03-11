@@ -205,8 +205,7 @@ PARAMS = """
             "process_name": "WriteElementsHomogenizedOutput",
             "Parameters": {
                 "model_part_name": "Structure.MACRO",
-                "filename": "homogenized_stress.dat",
-                "variable_name": "CAUCHY_STRESS_VECTOR"
+                "filename": "homogenized_stress.dat"
                 }
             }
         ],
@@ -278,12 +277,17 @@ def create_properties_file(m_prop, c_prop, t_prop, quiet=False):
     TODO: add docstrings here
     """
     test_props = json.loads(t_prop.read_text())
-    strain_versor = test_props["processes"]["loads_process_list"][0]["Parameters"][
-        "initial_strain"
+    _list = test_props["processes"]["loads_process_list"][0]["Parameters"][
+        "imposed_strain"
     ]
-    ampl = test_props["processes"]["loads_process_list"][0]["Parameters"][
-        "lookuptable_mult"
-    ][-1]
+    strain_versor = [float(x.split()[0]) for x in _list]
+    ampl = float(_list[0].split()[-1])
+    #strain_versor = test_props["processes"]["loads_process_list"][0]["Parameters"][
+    #    "initial_strain"
+    #]
+    #ampl = test_props["processes"]["loads_process_list"][0]["Parameters"][
+    #    "lookuptable_mult"
+    #][-1]
 
     model_props = json.loads(m_prop.read_text())
     # compute displacements u = E * x
