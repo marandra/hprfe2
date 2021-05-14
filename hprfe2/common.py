@@ -99,8 +99,8 @@ class Common:
             # base + roc datasets stuff
             "datasets_path": "datasets",
             "rve_fname_pattern": "rve{}_{}m_{}ip.json",
-            "correl_matrix_strain_pattern": "correlation_strain_{}.npy",
-            "correl_matrix_damage_pattern": "correlation_r_value_{}.npy",
+            "correl_matrix_strain_pattern": "correlation_strain_{}m.npy",
+            "correl_matrix_damage_pattern": "correlation_r_value_{}m_{}ip.npy",
             # multiscale files stuff
             "multiscale_path": "validation",
             # other files stuff
