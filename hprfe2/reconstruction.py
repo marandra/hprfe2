@@ -228,7 +228,7 @@ def reconstruct_displacement(common, n_modes):
     for elem in modelpart.Elements:
         nr_comp = len(
             elem.CalculateOnIntegrationPoints(
-                KratosMultiphysics.GREEN_LAGRANGE_STRAIN_VECTOR, modelpart.ProcessInfo
+                KratosMultiphysics.STRAIN, modelpart.ProcessInfo
             )[0]
         )
         break
@@ -375,7 +375,7 @@ def reconstruct_damage_all(common):
 
 def reconstruct_damage(common, nmodes, npoints):
     rvalue_bases_fn = common.get_bases_fname(common.config["rvalue_name"])
-    rve_data_fn = common.datasets_path / common.rve_fname(nmodes, npoints)
+    rve_data_fn = common.datasets_path / common.rve_fname(9, nmodes, npoints)
     A = compute_system(rve_data_fn, rvalue_bases_fn, nmodes)
     fname = common.bases_path / "correlation_r_value_{}m_{}ip.npy".format(
         nmodes, npoints
