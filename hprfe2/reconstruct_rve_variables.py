@@ -20,6 +20,7 @@ import logging
 import math
 import json
 import numpy
+import h5py
 from docopt import docopt
 import meshio
 from common import Common
@@ -29,7 +30,6 @@ from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_anal
     StructuralMechanicsAnalysis,
 )
 import KratosMultiphysics.MultiscaleROMApplication
-
 
 
 def q(r, E, yield_stress, inf_yield_stress, H0, H1):
@@ -92,7 +92,8 @@ def analize_runtime_data(data):
     return nr_timesteps, nr_modes, nr_points
 
 
-def init_kratos(aux_postproc_path):
+#def init_kratos(aux_postproc_path):
+def init_kratos(pmaterials, pmodel):
     """Load model and modelparts.
 
     Returns:
@@ -115,10 +116,10 @@ def init_kratos(aux_postproc_path):
             "solver_type": "Static",
             "model_import_settings": {
                 "input_type": "mdpa",
-                "input_filename": "{}/model".format(aux_postproc_path),
+                "input_filename": "{}".format(pmodel),
             },
             "material_import_settings": {
-                "materials_filename": "{}/materials.json".format(aux_postproc_path)
+                "materials_filename": "{}".format(pmaterials)
             },
         },
     }
@@ -136,7 +137,6 @@ class Reconstruct(Common):
         super().__init__(**kargs)
 
         self.resources_path = resources_path
-        self.model, self.modelpart = init_kratos(resources_path)
         self.nr_voigt_comps = 6
 
     def element_map(self):
@@ -217,34 +217,34 @@ class Reconstruct(Common):
         data = json.loads(runtime_data_path.read_text())
         nr_timesteps, nr_modes, nr_points = analize_runtime_data(data)
 
-        fnames = self.resources_path.glob(
-            self.config["bases_fname_pattern"].format("STRAIN", "*")
-        )
-        fname = [x for x in fnames]
-        logger.debug("Loading strain bases {}".format(fname[0]))
-        strain_modes = numpy.load(fname[0])[:, :nr_modes]
+        f = h5py.File(self.config["resources_fname"], "r")
 
-        fname = self.resources_path / self.config[
-            "correl_strain_pattern"
-        ].format(nr_modes)
-        logger.debug("Loading strain correl {}".format(fname))
-        strain_correl = numpy.load(fname)
+        logger.debug("Loading strain bases")
+        strain_modes = f["BASES_STRAIN"][:, :nr_modes]
 
-        fname = self.resources_path / self.config[
-            "correl_rvalue_pattern"
-        ].format(nr_modes, nr_points)
-        logger.debug("Loading damage correl {}".format(fname))
-        r_value_correl = numpy.load(fname)
+        logger.debug("Loading strain correlation matrix")
+        strain_correl = f[f"CORRELATION_STRAIN/{nr_modes}"]
 
-        fname = self.resources_path / self.config["training_model_fname"]
-        logger.debug("Loading rve model {}".format(fname))
-        rve_points, rve_cells = self.get_mesh(fname)
+        logger.debug("Loading rvalue correlation matrix")
+        r_value_correl = f[f"CORRELATION_RVALUE/{nr_modes}m-{nr_points}ip"]
 
-        fname = self.resources_path / self.config["rve_fname_pattern"].format(
-            9, nr_modes, nr_points
-        )
-        logger.debug("Loading rve data {}".format(fname))
-        rve_data = json.loads(fname.read_text())
+        logger.debug("Loading rve data")
+        dset = f[f"RVE_DATASET/{nr_modes}m-{nr_points}ip"]
+        rve_data = json.loads(dset.asstr()[()])
+
+        logger.debug("Loading rve model")
+        dset = f["MODEL"]
+        p_model = Path(dset.attrs["name"])
+        p_model.write_text(dset.asstr()[()])
+        rve_points, rve_cells = self.get_mesh(str(p_model))
+
+        logger.debug("Loading rve materials")
+        dset = f["MATERIALS"]
+        p_materials = Path(dset.attrs["name"])
+        p_materials.write_text(dset.asstr()[()])
+        self.model, self.modelpart = init_kratos(str(p_materials.resolve()), str(p_model.resolve().parent/p_model.stem))
+        p_materials.unlink()
+        p_model.unlink()
 
         # Get data from rve_data
         material_properties, material_elem_map = self.get_material_properties(

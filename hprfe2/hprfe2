@@ -160,7 +160,7 @@ def resources():
 
     # Write hdf5
     reconstruction.write_resources_h5(C)
-    reconstruction.export_resources_h5(C)
+    #reconstruction.export_resources_h5(C)
 
     return
 
