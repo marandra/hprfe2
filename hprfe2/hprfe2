@@ -157,6 +157,11 @@ def resources():
 
     # Computes data for damage reconstruction
     reconstruction.reconstruct_damage_all(C)
+
+    # Write hdf5
+    reconstruction.write_resources_h5(C)
+    reconstruction.export_resources_h5(C)
+
     return
 
 
