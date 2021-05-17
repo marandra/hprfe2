@@ -225,13 +225,13 @@ class Reconstruct(Common):
         strain_modes = numpy.load(fname[0])[:, :nr_modes]
 
         fname = self.resources_path / self.config[
-            "correl_matrix_strain_pattern"
+            "correl_strain_pattern"
         ].format(nr_modes)
         logger.debug("Loading strain correl {}".format(fname))
         strain_correl = numpy.load(fname)
 
         fname = self.resources_path / self.config[
-            "correl_matrix_damage_pattern"
+            "correl_rvalue_pattern"
         ].format(nr_modes, nr_points)
         logger.debug("Loading damage correl {}".format(fname))
         r_value_correl = numpy.load(fname)
