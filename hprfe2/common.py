@@ -19,6 +19,9 @@ def validate_config(default, user):
     # number of base modes < number of snapshots
     # number of base mode > number of requested modes
 
+    # Check unique correlation pairs:
+    # TODO
+
     # all keys in user must be present in default
     d_k = [dk for dk in default.keys()]
     for u_k in user.keys():
@@ -99,11 +102,12 @@ class Common:
             # base + roc datasets stuff
             "datasets_path": "datasets",
             "rve_fname_pattern": "rve{}_{}m_{}ip.json",
-            "correl_matrix_strain_pattern": "correlation_strain_{}m.npy",
-            "correl_matrix_damage_pattern": "correlation_r_value_{}m_{}ip.npy",
+            "correl_strain_pattern": "correlation_strain_{}m.npy",
+            "correl_rvalue_pattern": "correlation_rvalue_{}m_{}ip.npy",
             # multiscale files stuff
             "multiscale_path": "validation",
             # other files stuff
+            "resources_fname": "reconstruction_resources.h5",
         }
 
         # combine all levels of default options
