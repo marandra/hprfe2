@@ -222,16 +222,8 @@ def create_bases(
     nr_elastic_modes,
     nr_inelastic_modes,
     cases_path,
-    bases_fname,
     cutoff_tol,
 ):
-    if common.skip_calculation(common.bases_path / bases_fname.format(field_name, "*")):
-        logger.info(
-            "File {} exists. Skipping calculation".format(
-                bases_fname.format(field_name, "*")
-            )
-        )
-        return
     logger.info("Generating {} bases".format(field_name))
 
     t0 = time.time()
@@ -269,9 +261,9 @@ def create_bases(
             common.bases_path / "sv_{}.dat".format(field_name),
         )
 
-    numpy.save(common.bases_path / bases_fname.format(field_name, numpy.shape(U)[1]), U)
     logger.info("  Elapsed time: {:.1f}s".format(time.time() - t0))
     logger.info("")
+    return U
 
 
 def generate_local_bases(case, field, ss_fname, lb_fname, sv_fname):
@@ -361,33 +353,60 @@ def run(common):
     #
     # compute bases
     #
-    create_bases(
-        common,
-        common.config["energy_name"],
-        common.config["energy_elastic_modes"],
-        common.config["energy_inelastic_modes"],
-        training_set,
-        common.config["bases_fname_pattern"],
-        common.svd_cutoff[common.config["energy_name"]],
-    )
-    create_bases(
-        common,
-        common.config["strain_name"],
-        common.config["strain_elastic_modes"],
-        common.config["strain_inelastic_modes"],
-        training_set,
-        common.config["bases_fname_pattern"],
-        common.svd_cutoff[common.config["strain_name"]],
-    )
-    create_bases(
-        common,
-        common.config["rvalue_name"],
-        common.config["rvalue_elastic_modes"],
-        common.config["rvalue_inelastic_modes"],
-        training_set,
-        common.config["bases_fname_pattern"],
-        common.svd_cutoff[common.config["rvalue_name"]],
-    )
+    group = "BASES_ENERGY"
+    if f"{group}" not in h5py.File(common.resources_path, "a"):
+        U = create_bases(
+            common,
+            common.config["energy_name"],
+            common.config["energy_elastic_modes"],
+            common.config["energy_inelastic_modes"],
+            training_set,
+            common.svd_cutoff[common.config["energy_name"]],
+        )
+        bname = common.config["bases_fname_pattern"].format(common.config["energy_name"], numpy.shape(U)[1])
+        with h5py.File(common.resources_path, "a") as f:
+            dset = f.create_dataset(f"{group}", data=U)
+            dset.attrs["name"] = bname
+    else:
+         logger.info(f"Dataset {group} exists in resources file. Skipping.")
+         exit
+
+    group = "BASES_STRAIN"
+    if f"{group}" not in h5py.File(common.resources_path, "a"):
+        U = create_bases(
+            common,
+            common.config["strain_name"],
+            common.config["strain_elastic_modes"],
+            common.config["strain_inelastic_modes"],
+            training_set,
+            common.svd_cutoff[common.config["strain_name"]],
+        )
+        bname = common.config["bases_fname_pattern"].format(common.config["strain_name"], numpy.shape(U)[1])
+        with h5py.File(common.resources_path, "a") as f:
+            dset = f.create_dataset(f"{group}", data=U)
+            dset.attrs["name"] = bname
+    else:
+         logger.info(f"Dataset {group} exists in resources file. Skipping.")
+         exit
+
+    group = "BASES_RVALUE"
+    if f"{group}" not in h5py.File(common.resources_path, "a"):
+        U = create_bases(
+            common,
+            common.config["rvalue_name"],
+            common.config["rvalue_elastic_modes"],
+            common.config["rvalue_inelastic_modes"],
+            training_set,
+            common.svd_cutoff[common.config["rvalue_name"]],
+        )
+        bname = common.config["bases_fname_pattern"].format(common.config["rvalue_name"], numpy.shape(U)[1])
+        with h5py.File(common.resources_path, "a") as f:
+            dset = f.create_dataset(f"{group}", data=U)
+            dset.attrs["name"] = bname
+    else:
+         logger.info(f"Dataset {group} exists in resources file. Skipping.")
+         exit
+
     logger.info("Finished -----------------------------------------")
 
     return
