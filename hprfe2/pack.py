@@ -4,6 +4,8 @@ PACK: pending description here.
 
 import json
 from pathlib import Path
+import h5py
+#from meshio.xdmf import common
 import numpy
 import logging
 from common import Common
@@ -47,9 +49,8 @@ def unpack_ip_data(iw_list):
     return out_e, out_ip, out_w, out_gip
 
 
-def parse_strain_bases(strain_bases_filename, iw_list, nr_modes):
-    strain_bases = numpy.load(str(strain_bases_filename), mmap_mode="r")
-    strain_bases = strain_bases[:, :nr_modes]
+def parse_strain_bases(resources_path, iw_list, nr_modes):
+    strain_bases = h5py.File(resources_path, "r")["BASES_STRAIN"][:, :nr_modes]
     nr_comps = 6
     out_B = []
     for l in iw_list:
@@ -61,7 +62,7 @@ def parse_strain_bases(strain_bases_filename, iw_list, nr_modes):
 
 
 def create_rve_params_structure(
-    strain_bases_filename,
+    resources_path,
     rve_materials_filename,
     nr_modes,
     reduced_ip_set,
@@ -75,7 +76,7 @@ def create_rve_params_structure(
     rve_params["ip_weight"] = out_w
     rve_params["ip_property_id"] = get_properties(rve_modelpart, reduced_ip_set)
     rve_params["ip_strain_modes"] = parse_strain_bases(
-        strain_bases_filename, reduced_ip_set, nr_modes
+        resources_path, reduced_ip_set, nr_modes
     )
     rve_params["material_parameters"] = read_json(rve_materials_filename)
     #  metadata
@@ -132,7 +133,7 @@ def write_datasets(common):
                 continue
             logger.info("Generating {}".format(rve_fname))
             rve_params = create_rve_params_structure(
-                common.get_bases_fname(common.config["strain_name"]),
+                common.resources_path,
                 materials_fname,
                 m,
                 ip_set,
