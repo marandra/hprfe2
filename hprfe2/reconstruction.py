@@ -408,14 +408,14 @@ def write_resources_h5(common):
     """Creates resources file (hdf5 format) for reconsruction"""
 
     # 1. Bases
-    with h5py.File(common.config["resources_fname"], "w") as f:
+    with h5py.File(common.resources_path, "w") as f:
         group = "BASES_STRAIN"
         path = common.get_bases_fname(common.config["strain_name"])
         dset = f.create_dataset(f"{group}", data=numpy.load(path))
         dset.attrs["name"] = path.name
 
     # 2. Correlation strain
-    with h5py.File(common.config["resources_fname"], "a") as f:
+    with h5py.File(common.resources_path, "a") as f:
         group = "CORRELATION_STRAIN"
         for tup in correlation_strain_names(common):
             nm, path = tup[0], tup[1]
@@ -423,7 +423,7 @@ def write_resources_h5(common):
             dset.attrs["name"] = path.name
 
     # 3. Correlation damage
-    with h5py.File(common.config["resources_fname"], "a") as f:
+    with h5py.File(common.resources_path, "a") as f:
         group = "CORRELATION_RVALUE"
         for tup in correlation_rvalue_names(common):
             nm, np, path = tup[0], tup[1], tup[2]
@@ -431,14 +431,14 @@ def write_resources_h5(common):
             dset.attrs["name"] = path.name
 
     # 4. Model
-    with h5py.File(common.config["resources_fname"], "a") as f:
+    with h5py.File(common.resources_path, "a") as f:
         group = "MODEL"
         path = common.training_path / common.config["training_model_fname"]
         dset = f.create_dataset(f"{group}", data=path.read_text())
         dset.attrs["name"] = path.name
 
     # 5.Datasets
-    with h5py.File(common.config["resources_fname"], "a") as f:
+    with h5py.File(common.resources_path, "a") as f:
         group = "RVE_DATASET"
         for tup in dataset_names(common):
             nm, np, path = tup[0], tup[1], tup[2]
@@ -446,7 +446,7 @@ def write_resources_h5(common):
             dset.attrs["name"] = path.name
 
     # 6. Materials
-    with h5py.File(common.config["resources_fname"], "a") as f:
+    with h5py.File(common.resources_path, "a") as f:
         group = "MATERIALS"
         path = common.training_path / common.config["training_materials_fname"]
         dset = f.create_dataset(f"{group}", data=path.read_text())

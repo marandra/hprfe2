@@ -107,7 +107,7 @@ class Common:
             # multiscale files stuff
             "multiscale_path": "validation",
             # other files stuff
-            "resources_fname": "reconstruction_resources.h5",
+            "resources_path": "resources.h5",
         }
 
         # combine all levels of default options
@@ -123,6 +123,7 @@ class Common:
         self.bases_path = self.root_path / self.config["bases_path"]
         self.datasets_path = self.root_path / self.config["datasets_path"]
         self.multiscale_path = self.root_path / self.config["multiscale_path"]
+        self.resources_path = self.root_path / self.config["resources_path"]
 
         # bases generation
         self.svd_cutoff = {}
