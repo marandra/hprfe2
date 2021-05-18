@@ -5,6 +5,7 @@ import logging
 from pathlib import Path
 import json
 import numpy as np
+import h5py
 from common import Common
 
 
@@ -140,12 +141,11 @@ def compute_roq(Modes, weights, nGP, tol):
 ###########################################################
 
 
-def compute_hprom_weights(ip_data, nr_roq_points, energy_bases_filename):
+def compute_hprom_weights(ip_data, nr_roq_points, energy_modes):
     logger.info("Computing reduced set of integration points (HPROM)")
     ip_weights = ip_data[0]
     ip_lids = ip_data[1]
     elem_ids = ip_data[2]
-    energy_modes = np.load(energy_bases_filename)[:, :nr_roq_points]
     [w, z] = compute_roq(energy_modes, np.array(ip_weights), nr_roq_points, tol=1.0e-14)
     roq_list = []
     for x, ip_gid in enumerate(z):
@@ -235,11 +235,13 @@ def write_ip_sets(common):
         else:  # HPROM case
             logger.info("Generating {}".format(roc_filename))
             # compute ROC list
-            energy_bases_fname = common.get_bases_fname(common.config["energy_name"])
-            if energy_bases_fname is None:
-                logger.error("Missing energy bases file. Exiting.")
-                exit()
-            roc_list = compute_hprom_weights(ip_data, nr_p, energy_bases_fname)
+            group = "BASES_ENERGY"
+            with h5py.File(common.resources_path, "a") as f:
+                if f"{group}" not in f:
+                    logger.error("Missing energy bases file. Exiting.")
+                    exit()
+                energy_bases = f[f"{group}"][:,:nr_p]
+            roc_list = compute_hprom_weights(ip_data, nr_p, energy_bases)
 
         with open(roc_filename, "w") as ofile:
             for list in roc_list:
