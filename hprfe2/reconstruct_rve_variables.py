@@ -217,7 +217,7 @@ class Reconstruct(Common):
         data = json.loads(runtime_data_path.read_text())
         nr_timesteps, nr_modes, nr_points = analize_runtime_data(data)
 
-        f = h5py.File(self.config["resources_fname"], "r")
+        f = h5py.File(self.resources_path, "r")
 
         logger.debug("Loading strain bases")
         strain_modes = f["BASES_STRAIN"][:, :nr_modes]
