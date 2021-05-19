@@ -353,8 +353,11 @@ def run(common):
     #
     # compute bases
     #
-    group = "BASES_ENERGY"
-    if f"{group}" not in h5py.File(common.resources_path, "a"):
+    group = "BASES"
+    dataset = "ENERGY"
+    if common.has_dataset(group, dataset):
+        logger.info(f"Dataset {common.name_dataset(group, dataset)} exits. Skipping.")
+    else:
         U = create_bases(
             common,
             common.config["energy_name"],
@@ -363,16 +366,12 @@ def run(common):
             training_set,
             common.svd_cutoff[common.config["energy_name"]],
         )
-        bname = common.config["bases_fname_pattern"].format(common.config["energy_name"], numpy.shape(U)[1])
-        with h5py.File(common.resources_path, "a") as f:
-            dset = f.create_dataset(f"{group}", data=U)
-            dset.attrs["name"] = bname
-    else:
-         logger.info(f"Dataset {group} exists in resources file. Skipping.")
-         exit
+        common.set_dataset(U, group, dataset)
 
-    group = "BASES_STRAIN"
-    if f"{group}" not in h5py.File(common.resources_path, "a"):
+    dataset = "STRAIN"
+    if common.has_dataset(group, dataset):
+        logger.info(f"Dataset {common.name_dataset(group, dataset)} exits. Skipping.")
+    else:
         U = create_bases(
             common,
             common.config["strain_name"],
@@ -381,16 +380,12 @@ def run(common):
             training_set,
             common.svd_cutoff[common.config["strain_name"]],
         )
-        bname = common.config["bases_fname_pattern"].format(common.config["strain_name"], numpy.shape(U)[1])
-        with h5py.File(common.resources_path, "a") as f:
-            dset = f.create_dataset(f"{group}", data=U)
-            dset.attrs["name"] = bname
-    else:
-         logger.info(f"Dataset {group} exists in resources file. Skipping.")
-         exit
+        common.set_dataset(U, group, dataset)
 
-    group = "BASES_RVALUE"
-    if f"{group}" not in h5py.File(common.resources_path, "a"):
+    dataset = "RVALUE"
+    if common.has_dataset(group, dataset):
+        logger.info(f"Dataset {common.name_dataset(group, dataset)} exits. Skipping.")
+    else:
         U = create_bases(
             common,
             common.config["rvalue_name"],
@@ -399,13 +394,7 @@ def run(common):
             training_set,
             common.svd_cutoff[common.config["rvalue_name"]],
         )
-        bname = common.config["bases_fname_pattern"].format(common.config["rvalue_name"], numpy.shape(U)[1])
-        with h5py.File(common.resources_path, "a") as f:
-            dset = f.create_dataset(f"{group}", data=U)
-            dset.attrs["name"] = bname
-    else:
-         logger.info(f"Dataset {group} exists in resources file. Skipping.")
-         exit
+        common.set_dataset(U, group, dataset)
 
     logger.info("Finished -----------------------------------------")
 

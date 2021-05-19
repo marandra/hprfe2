@@ -5,7 +5,7 @@
 import logging
 import json
 from pathlib import Path
-
+import h5py
 
 logger = logging.getLogger(__name__)
 
@@ -106,8 +106,6 @@ class Common:
             "correl_rvalue_pattern": "correlation_rvalue_{}m_{}ip.npy",
             # multiscale files stuff
             "multiscale_path": "validation",
-            # other files stuff
-            "resources_path": "resources.h5",
         }
 
         # combine all levels of default options
@@ -123,7 +121,11 @@ class Common:
         self.bases_path = self.root_path / self.config["bases_path"]
         self.datasets_path = self.root_path / self.config["datasets_path"]
         self.multiscale_path = self.root_path / self.config["multiscale_path"]
-        self.resources_path = self.root_path / self.config["resources_path"]
+        #self.resources_path = self.root_path / self.config["resources_path"]
+        self.resources_path = self.root_path / f"{self.root_path.name}.h5"
+
+        # initialization of resources file
+        self.init_dataset()
 
         # bases generation
         self.svd_cutoff = {}
@@ -233,6 +235,51 @@ class Common:
             )
         return files[0]
 
+
+    def init_dataset(self):
+        # Check valid keys
+        #valid_keys = {}
+        #valid_keys["BASES"] = ["STRAIN", "ENERGY", "RVALUE", "TEST"]
+        #valid_keys["CORRELATION"] = ["STRAIN", "RVALUE"]
+        #valid_keys["DATASET"] = ["RVE"]
+        #valid_keys["TEMPLATE"] = ["MODEL", "MATERIALS", "PARAMETERS", "MAIN", "RESOURCES"]
+        #if group not in valid_keys.keys():
+        #   logger.error(f"Invalid group name {group}")
+        #   exit()
+        #if dataset not in valid_keys[group]:
+        #   logger.error(f"Invalid dataset name {dataset}")
+        #   exit()
+        with h5py.File(self.resources_path, "a") as f:
+            for group in ["BASES", "CORRELATION", "DATASET", "TEMPLATE"]:
+                if group in f.keys():
+                    continue
+                f.create_group(group)
+
+    def name_dataset(self, dataset, nmodes=None, npoints=None):
+        # Set name
+        name = f"{dataset}"
+        if nmodes:
+            name += f"_{nmodes}m"
+        if nmodes and npoints:
+            name += f"_{npoints}p"
+        return name
+
+    def get_dataset(self, group, dataset, nmodes=None, npoints=None):
+        """Get dataset from database h5 file"""
+        dsname = self.name_dataset(dataset, nmodes, npoints)
+        with h5py.File(self.resources_path, "r") as f:
+            return f[group][dsname][()] # TODO: See if extract now or let the caller do it
+
+    def set_dataset(self, data, group, dataset, nmodes=None, npoints=None):
+        """Create dataset in database h5 file. Only valid groups and datasets"""
+        dsname = self.name_dataset(dataset, nmodes, npoints)
+        with h5py.File(self.resources_path, "a") as f:
+            f.create_dataset(f"{group}/{dsname}", data=data)
+
+    def has_dataset(self, group, dataset, nmodes=None, npoints=None):
+        dsname = self.name_dataset(dataset, nmodes, npoints)
+        with h5py.File(self.resources_path, "a") as f:
+            return dsname in f[group]
 
 #####################################################################
 # main

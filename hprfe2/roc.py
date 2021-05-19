@@ -5,7 +5,6 @@ import logging
 from pathlib import Path
 import json
 import numpy as np
-import h5py
 from common import Common
 
 
@@ -235,12 +234,7 @@ def write_ip_sets(common):
         else:  # HPROM case
             logger.info("Generating {}".format(roc_filename))
             # compute ROC list
-            group = "BASES_ENERGY"
-            with h5py.File(common.resources_path, "a") as f:
-                if f"{group}" not in f:
-                    logger.error("Missing energy bases file. Exiting.")
-                    exit()
-                energy_bases = f[f"{group}"][:,:nr_p]
+            energy_bases = common.get_dataset("BASES", "ENERGY")[:,:nr_p]
             roc_list = compute_hprom_weights(ip_data, nr_p, energy_bases)
 
         with open(roc_filename, "w") as ofile:

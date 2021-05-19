@@ -49,8 +49,9 @@ def unpack_ip_data(iw_list):
     return out_e, out_ip, out_w, out_gip
 
 
-def parse_strain_bases(resources_path, iw_list, nr_modes):
-    strain_bases = h5py.File(resources_path, "r")["BASES_STRAIN"][:, :nr_modes]
+def parse_strain_bases(common, iw_list, nr_modes):
+    #strain_bases = h5py.File(resources_path, "r")["BASES_STRAIN"][:, :nr_modes]
+    strain_bases = common.get_dataset("BASES", "STRAIN")[:, :nr_modes]
     nr_comps = 6
     out_B = []
     for l in iw_list:
@@ -62,7 +63,7 @@ def parse_strain_bases(resources_path, iw_list, nr_modes):
 
 
 def create_rve_params_structure(
-    resources_path,
+    common,
     rve_materials_filename,
     nr_modes,
     reduced_ip_set,
@@ -76,7 +77,7 @@ def create_rve_params_structure(
     rve_params["ip_weight"] = out_w
     rve_params["ip_property_id"] = get_properties(rve_modelpart, reduced_ip_set)
     rve_params["ip_strain_modes"] = parse_strain_bases(
-        resources_path, reduced_ip_set, nr_modes
+        common, reduced_ip_set, nr_modes
     )
     rve_params["material_parameters"] = read_json(rve_materials_filename)
     #  metadata
@@ -126,20 +127,23 @@ def write_datasets(common):
         roc_filename = common.bases_path / common.roc_fname(p)
         ip_set = numpy.loadtxt(roc_filename)
         for m in common.config["rve_data_modes"]:
-            # TODO: added "9" as a workaround while we find the rigth heuristics
             rve_fname = common.datasets_path / common.rve_fname(9, m, p)
-            if common.skip_calculation(rve_fname):
+            if not common.has_dataset("DATASET", "RVE", m, p):
+                logger.info("Generating {}".format(rve_fname))
+                rve_params = create_rve_params_structure(
+                    common,
+                    materials_fname,
+                    m,
+                    ip_set,
+                    modelpart,
+                )
+                common.set_dataset(str(rve_params), "DATASET", "RVE", m, p)
+                write_json(rve_fname, rve_params) # Leave it for now
+            else:
+                # TODO: added "9" as a workaround while we find the rigth heuristics
+                #if common.skip_calculation(rve_fname):
                 logger.info("File {} exists. Skipping calculation".format(rve_fname))
                 continue
-            logger.info("Generating {}".format(rve_fname))
-            rve_params = create_rve_params_structure(
-                common.resources_path,
-                materials_fname,
-                m,
-                ip_set,
-                modelpart,
-            )
-            write_json(rve_fname, rve_params)
 
     return
 
