@@ -18,8 +18,7 @@ Options:
 Commands:
     config      Create default configuration file
     deploy      Deploy sampling datastructure and scripts from a given template case
-    generate    Generate bases and IP sets
-    resources   Create datasets for fields reconstruction
+    generate    Generate bases, IP sets and  datasets for fields reconstruction
     validate    Generate 1ip-multiscale validation cases
 
 See 'hprfe2 <command> help' for more information on a specific command.\
@@ -143,11 +142,6 @@ obtained in the sampling stage."""
 
     # Generate rvelaw datasets
     pack.write_datasets(common)
-    return
-
-
-def resources():
-    """ doc """
 
     # workaround: move import here, to avoid printing Kratos banner
     import reconstruction
@@ -157,10 +151,6 @@ def resources():
 
     # Computes data for damage reconstruction
     reconstruction.reconstruct_damage_all(C)
-
-    # Write hdf5
-    #reconstruction.write_resources_h5(C)
-    #reconstruction.export_resources_h5(C)
 
     return
 
@@ -266,16 +256,6 @@ if __name__ == "__main__":
             exit(generate.__doc__)
         subargs = docopt(generate.__doc__)
         generate(C, subargs)
-
-    elif ARGS["<command>"] == "resources":
-        if "help" in ARGS["<args>"]:
-            # workaround: avoiding importing module until use, banner Kratos
-            # print(reconstruction.__doc__)
-            # print(reconstruction.reconstruct_displacement.__doc__)
-            # print(reconstruction.reconstruct_damage.__doc__)
-            # Printting our own help for now...
-            exit("Reconstruction help: add docs here")
-        resources()
 
     elif ARGS["<command>"] == "validate":
         if "help" in ARGS["<args>"]:
