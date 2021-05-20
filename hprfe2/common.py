@@ -1,7 +1,3 @@
-# TODO:
-# Check schema for input validation https://github.com/keleshev/schema
-# Check fire for exposing objects to CLI https://github.com/google/python-fire
-
 import logging
 import json
 from pathlib import Path
@@ -72,19 +68,34 @@ class Common:
             # "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
             "rve_data_points_range_list": [],
             #
-            "energy_name": "ENERGY_FREE",
-            "energy_elastic_modes": 21,
-            "energy_inelastic_modes": -1,
-            "energy_svd_cutoff": 1e-4,
-            "strain_name": "STRAIN_FLUCTUANT",
-            "strain_elastic_modes": 6,
-            "strain_inelastic_modes": -1,
-            "strain_svd_cutoff": 1e-4,
-            "rvalue_name": "R_VALUE",
-            "rvalue_elastic_modes": 1,
-            "rvalue_inelastic_modes": 30,
-            "rvalue_svd_cutoff": 1e-4,
+            #"energy_name": "ENERGY_FREE",
+            #"energy_elastic_modes": 21,
+            #"energy_inelastic_modes": -1,
+            #"energy_svd_cutoff": 1e-4,
+            #"strain_name": "STRAIN_FLUCTUANT",
+            #"strain_elastic_modes": 6,
+            #"strain_inelastic_modes": -1,
+            #"strain_svd_cutoff": 1e-4,
+            #"rvalue_name": "R_VALUE",
+            #"rvalue_elastic_modes": 1,
+            #"rvalue_inelastic_modes": 30,
+            #"rvalue_svd_cutoff": 1e-4,
             "reuse_existing_files": True,
+            "ENERGY": {
+                "nr_mode_elastic": 21,
+                "nr_mode_inelastic": -1,
+                "svd_cutoff": 1e-4,
+            },
+            "STRAIN": {
+                "nr_mode_elastic": 6,
+                "nr_mode_inelastic": -1,
+                "svd_cutoff": 1e-4,
+            },
+            "RVALUE": {
+                "nr_mode_elastic": 1,
+                "nr_mode_inelastic": 30,
+                "svd_cutoff": 1e-4,
+            },
         }
         defaults_system = {
             # training files stuff
@@ -128,22 +139,19 @@ class Common:
         self.init_dataset()
 
         # bases generation
-        self.svd_cutoff = {}
+        #self.svd_cutoff = {}
 
-        # self.energy_name = self.config["energy_name"]
-        self.energy_elastic_modes = self.config["energy_elastic_modes"]
-        self.energy_inelastic_modes = self.config["energy_inelastic_modes"]
-        self.svd_cutoff[self.config["energy_name"]] = self.config["energy_svd_cutoff"]
+        #self.energy_elastic_modes = self.config["energy_elastic_modes"]
+        #self.energy_inelastic_modes = self.config["energy_inelastic_modes"]
+        #self.svd_cutoff[self.config["energy_name"]] = self.config["energy_svd_cutoff"]
 
-        # self.strain_name = self.config["strain_name"]
-        self.strain_elastic_modes = self.config["strain_elastic_modes"]
-        self.strain_inelastic_modes = self.config["strain_inelastic_modes"]
-        self.svd_cutoff[self.config["strain_name"]] = self.config["strain_svd_cutoff"]
+        #self.strain_elastic_modes = self.config["strain_elastic_modes"]
+        #self.strain_inelastic_modes = self.config["strain_inelastic_modes"]
+        #self.svd_cutoff[self.config["strain_name"]] = self.config["strain_svd_cutoff"]
 
-        # self.rvalue_name = self.config["rvalue_name"]
-        self.rvalue_elastic_modes = self.config["rvalue_elastic_modes"]
-        self.rvalue_inelastic_modes = self.config["rvalue_inelastic_modes"]
-        self.svd_cutoff[self.config["rvalue_name"]] = self.config["rvalue_svd_cutoff"]
+        #self.rvalue_elastic_modes = self.config["rvalue_elastic_modes"]
+        #self.rvalue_inelastic_modes = self.config["rvalue_inelastic_modes"]
+        #self.svd_cutoff[self.config["rvalue_name"]] = self.config["rvalue_svd_cutoff"]
 
         # points
         self.ip_subsets = [x for x in self.config["rve_data_points"]]

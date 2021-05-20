@@ -356,43 +356,43 @@ def run(common):
     group = "BASES"
     dataset = "ENERGY"
     if common.has_dataset(group, dataset):
-        logger.info(f"Dataset {common.name_dataset(group, dataset)} exits. Skipping.")
+        logger.info(f"Dataset BASES ENERGY exits. Skipping.")
     else:
         U = create_bases(
             common,
-            common.config["energy_name"],
-            common.config["energy_elastic_modes"],
-            common.config["energy_inelastic_modes"],
+            "ENERGY",
+            common.config["ENERGY"]["nr_mode_elastic"],
+            common.config["ENERGY"]["nr_mode_inelastic"],
             training_set,
-            common.svd_cutoff[common.config["energy_name"]],
+            common.config["ENERGY"]["svd_cutoff"],
         )
         common.set_dataset(U, group, dataset)
 
     dataset = "STRAIN"
     if common.has_dataset(group, dataset):
-        logger.info(f"Dataset {common.name_dataset(group, dataset)} exits. Skipping.")
+        logger.info(f"Dataset BASES STRAIN exits. Skipping.")
     else:
         U = create_bases(
             common,
-            common.config["strain_name"],
-            common.config["strain_elastic_modes"],
-            common.config["strain_inelastic_modes"],
+            "STRAIN",
+            common.config["STRAIN"]["nr_mode_elastic"],
+            common.config["STRAIN"]["nr_mode_inelastic"],
             training_set,
-            common.svd_cutoff[common.config["strain_name"]],
+            common.config["STRAIN"]["svd_cutoff"],
         )
         common.set_dataset(U, group, dataset)
 
     dataset = "RVALUE"
     if common.has_dataset(group, dataset):
-        logger.info(f"Dataset {common.name_dataset(group, dataset)} exits. Skipping.")
+        logger.info(f"Dataset BASES RVALUE exits. Skipping.")
     else:
         U = create_bases(
             common,
-            common.config["rvalue_name"],
-            common.config["rvalue_elastic_modes"],
-            common.config["rvalue_inelastic_modes"],
+            "RVALUE",
+            common.config["RVALUE"]["nr_mode_elastic"],
+            common.config["RVALUE"]["nr_mode_inelastic"],
             training_set,
-            common.svd_cutoff[common.config["rvalue_name"]],
+            common.config["RVALUE"]["svd_cutoff"],
         )
         common.set_dataset(U, group, dataset)
 
