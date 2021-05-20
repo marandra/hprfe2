@@ -268,7 +268,10 @@ class Common:
         """Get dataset from database h5 file"""
         dsname = self.name_dataset(dataset, nmodes, npoints)
         with h5py.File(self.resources_path, "r") as f:
-            return f[group][dsname][()] # TODO: See if extract now or let the caller do it
+            if group in ["BASES", "CORRELATION"]:  # numpy
+                return f[group][dsname][()]
+            else:  # text
+                return f[group][dsname].asstr()[()]
 
     def set_dataset(self, data, group, dataset, nmodes=None, npoints=None):
         """Create dataset in database h5 file. Only valid groups and datasets"""

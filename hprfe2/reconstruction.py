@@ -149,6 +149,7 @@ def reconstruct_displacement(common, n_modes):
                         "number_modes_to_load": n_modes,
                         "modes_to_nodes_matrix_filename": str(correl_fname),
                         "modes_to_nodes_matrix_file_format": "binary",
+                        "root_path": str(common.root_path.resolve())
                     },
                 }
             ],
@@ -265,16 +266,7 @@ def reconstruct_displacement(common, n_modes):
     simulation.RunSolutionLoop()
     simulation.Finalize()
 
-    # Version-dependent code. To be removed.
-    import sys
-
-    if sys.version_info < (3, 8, 0):
-        try:
-            global_index_path.unlink()
-        except:
-            pass
-    else:
-        global_index_path.unlink(missing_ok=True)
+    global_index_path.unlink(missing_ok=True)
 
     return
 
@@ -292,8 +284,9 @@ def load_rve_data(rve_data):
     return reduced_ip_set, reduced_ip_weights
 
 
-def load_energy_modes(modes_filename, reduced_ip_set, nr_modes):
-    modes = numpy.load(modes_filename)[:, :nr_modes]
+def load_energy_modes(common, modes_filename, reduced_ip_set, nr_modes):
+    #modes = numpy.load(modes_filename)[:, :nr_modes]
+    modes = common.get_dataset("BASES", "RVALUE")[:, :nr_modes]
     reduced_modes = modes[reduced_ip_set, :]
     logger.info(
         "Modes matrix {} {} - Reduced modes matrix: {} {}".format(
@@ -334,13 +327,13 @@ def compute_reconstruction_system(
     return aux_2
 
 
-def compute_system(rve_data_filename, energy_modes_filename, nr_modes):
+def compute_system(common, rve_data_filename, energy_modes_filename, nr_modes):
     """ docstrings """
 
     with open(rve_data_filename) as f:
         rve_data = json.load(f)
     reduced_ip_set, reduced_ip_weights = load_rve_data(rve_data)
-    modes, reduced_modes = load_energy_modes(
+    modes, reduced_modes = load_energy_modes(common,
         energy_modes_filename, reduced_ip_set, nr_modes
     )
     A = compute_reconstruction_system(
@@ -366,10 +359,11 @@ def reconstruct_damage_all(common):
 def reconstruct_damage(common, nm, np):
     rvalue_bases_fn = common.get_bases_fname(common.config["rvalue_name"])
     rve_data_fn = common.datasets_path / common.rve_fname(9, nm, np)
-    A = compute_system(rve_data_fn, rvalue_bases_fn, nm)
+    A = compute_system(common, rve_data_fn, rvalue_bases_fn, nm)
     path = common.bases_path / common.config["correl_rvalue_pattern"].format(nm, np)
     logger.info("Saving {}".format(path))
     numpy.save(path, A)
+    common.set_dataset(A, "CORRELATION", "RVALUE", nm, np)
     return
 
 
@@ -407,86 +401,55 @@ def dataset_names(common):
 def write_resources_h5(common):
     """Creates resources file (hdf5 format) for reconsruction"""
 
-    # 1. Bases
-    with h5py.File(common.resources_path, "w") as f:
-        group = "BASES_STRAIN"
-        path = common.get_bases_fname(common.config["strain_name"])
-        dset = f.create_dataset(f"{group}", data=numpy.load(path))
-        dset.attrs["name"] = path.name
-
-    # 2. Correlation strain
-    with h5py.File(common.resources_path, "a") as f:
-        group = "CORRELATION_STRAIN"
-        for tup in correlation_strain_names(common):
-            nm, path = tup[0], tup[1]
-            dset = f.create_dataset(f"{group}/{nm}", data=numpy.load(path))
-            dset.attrs["name"] = path.name
-
-    # 3. Correlation damage
-    with h5py.File(common.resources_path, "a") as f:
-        group = "CORRELATION_RVALUE"
-        for tup in correlation_rvalue_names(common):
-            nm, np, path = tup[0], tup[1], tup[2]
-            dset = f.create_dataset(f"{group}/{nm}m-{np}ip", data=numpy.load(path))
-            dset.attrs["name"] = path.name
-
     # 4. Model
     with h5py.File(common.resources_path, "a") as f:
-        group = "MODEL"
+        group = "TEMPLATE/MODEL"
         path = common.training_path / common.config["training_model_fname"]
         dset = f.create_dataset(f"{group}", data=path.read_text())
         dset.attrs["name"] = path.name
-
-    # 5.Datasets
-    with h5py.File(common.resources_path, "a") as f:
-        group = "RVE_DATASET"
-        for tup in dataset_names(common):
-            nm, np, path = tup[0], tup[1], tup[2]
-            dset = f.create_dataset(f"{group}/{nm}m-{np}ip", data=path.read_text())
-            dset.attrs["name"] = path.name
-
+#
+#
     # 6. Materials
     with h5py.File(common.resources_path, "a") as f:
-        group = "MATERIALS"
+        group = "TEMPLATE/MATERIALS"
         path = common.training_path / common.config["training_materials_fname"]
         dset = f.create_dataset(f"{group}", data=path.read_text())
         dset.attrs["name"] = path.name
-
-
-
-def export_resources_h5(common):
-    """Creates resources file (hdf5 format) for reconsruction"""
-    with h5py.File(common.config["resources_fname"], "r") as f:
-
-        # 1. Bases
-        group = "BASES_STRAIN"
-        dset = f[group]
-        numpy.save(dset.attrs["name"], dset)
-
-        # 2. Correlation strain
-        group = "CORRELATION_STRAIN"
-        for ds in f[group]:
-            dset = f[f"{group}/{ds}"]
-            numpy.save(dset.attrs["name"], dset)
-
-        ## 3. Correlation damage
-        group = "CORRELATION_RVALUE"
-        for ds in f[group]:
-            dset = f[f"{group}/{ds}"]
-            numpy.save(dset.attrs["name"], dset)
-
-        # 4. Model
-        group = "MODEL"
-        dset = f[group]
-        Path(dset.attrs["name"]).write_text(dset.asstr()[()])
-
-        # 5.Datasets
-        group = "RVE_DATASET"
-        for ds in f[group]:
-            dset = f[f"{group}/{ds}"]
-            Path(dset.attrs["name"]).write_text(dset.asstr()[()])
-
-        # 6. Materials
-        group = "MATERIALS"
-        dset = f[group]
-        Path(dset.attrs["name"]).write_text(dset.asstr()[()])
+#
+#
+#def export_resources_h5(common):
+#    """Creates resources file (hdf5 format) for reconsruction"""
+#    with h5py.File(common.config["resources_fname"], "r") as f:
+#
+#        # 1. Bases
+#        group = "BASES_STRAIN"
+#        dset = f[group]
+#        numpy.save(dset.attrs["name"], dset)
+#
+#        # 2. Correlation strain
+#        group = "CORRELATION_STRAIN"
+#        for ds in f[group]:
+#            dset = f[f"{group}/{ds}"]
+#            numpy.save(dset.attrs["name"], dset)
+#
+#        ## 3. Correlation damage
+#        group = "CORRELATION_RVALUE"
+#        for ds in f[group]:
+#            dset = f[f"{group}/{ds}"]
+#            numpy.save(dset.attrs["name"], dset)
+#
+#        # 4. Model
+#        group = "MODEL"
+#        dset = f[group]
+#        Path(dset.attrs["name"]).write_text(dset.asstr()[()])
+#
+#        # 5.Datasets
+#        group = "RVE_DATASET"
+#        for ds in f[group]:
+#            dset = f[f"{group}/{ds}"]
+#            Path(dset.attrs["name"]).write_text(dset.asstr()[()])
+#
+#        # 6. Materials
+#        group = "MATERIALS"
+#        dset = f[group]
+#        Path(dset.attrs["name"]).write_text(dset.asstr()[()])

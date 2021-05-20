@@ -137,7 +137,7 @@ def write_datasets(common):
                     ip_set,
                     modelpart,
                 )
-                common.set_dataset(str(rve_params), "DATASET", "RVE", m, p)
+                common.set_dataset(json.dumps(rve_params), "DATASET", "RVE", m, p)
                 write_json(rve_fname, rve_params) # Leave it for now
             else:
                 # TODO: added "9" as a workaround while we find the rigth heuristics

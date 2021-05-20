@@ -127,6 +127,15 @@ class Sampling():
         #    dest.write_text(text)
         #    logger.info("Strain file generated ({} vectors)".format(n))
 
+    def save_template(self):
+        if not self.common.has_dataset("TEMPLATE", "MODEL"):
+            path = self.common.training_path / "model.mdpa"
+            self.common.set_dataset(path.read_text(), "TEMPLATE", "MODEL")
+
+        if not self.common.has_dataset("TEMPLATE", "MATERIALS"):
+            path = self.common.training_path / "materials.json"
+            self.common.set_dataset(path.read_text(), "TEMPLATE", "MATERIALS")
+
     def generate_cases(self):
         # Generate cases
         src = self.common.training_path / STRAIN_FN[0]
@@ -243,5 +252,6 @@ class Case():
 def run(common, args):
     sampling = Sampling(common, args)
     sampling.check_template()
+    sampling.save_template()
     sampling.generate_cases()
     sampling.deploy_cases()

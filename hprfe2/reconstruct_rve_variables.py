@@ -2,7 +2,7 @@
 
 Usage:
     reconstruct.py [-h]
-    reconstruct.py [-v | -q] <root> <runtime_data> <resources>
+    reconstruct.py [-v | -q] <root> <runtime_data>
 
 Options:
 -h --help     Show this
@@ -12,7 +12,6 @@ Options:
 Arguments:
 root              Root path of the project
 runtime_data      Generated run-time data file
-resources         Location of auxiliar postprocess data
 """
 
 from pathlib import Path
@@ -133,10 +132,8 @@ def init_kratos(pmaterials, pmodel):
 
 
 class Reconstruct(Common):
-    def __init__(self, resources_path, **kargs):
+    def __init__(self, **kargs):
         super().__init__(**kargs)
-
-        self.resources_path = resources_path
         self.nr_voigt_comps = 6
 
     def element_map(self):
@@ -217,31 +214,30 @@ class Reconstruct(Common):
         data = json.loads(runtime_data_path.read_text())
         nr_timesteps, nr_modes, nr_points = analize_runtime_data(data)
 
-        f = h5py.File(self.resources_path, "r")
-
         logger.debug("Loading strain bases")
-        strain_modes = f["BASES_STRAIN"][:, :nr_modes]
+        strain_modes = self.get_dataset("BASES", "STRAIN")[:, :nr_modes]
 
         logger.debug("Loading strain correlation matrix")
-        strain_correl = f[f"CORRELATION_STRAIN/{nr_modes}"]
+        strain_correl = self.get_dataset("CORRELATION", "STRAIN", nr_modes)
 
         logger.debug("Loading rvalue correlation matrix")
-        r_value_correl = f[f"CORRELATION_RVALUE/{nr_modes}m-{nr_points}ip"]
+        r_value_correl = self.get_dataset("CORRELATION", "RVALUE", nr_modes, nr_points)
 
         logger.debug("Loading rve data")
-        dset = f[f"RVE_DATASET/{nr_modes}m-{nr_points}ip"]
-        rve_data = json.loads(dset.asstr()[()])
+        #dset = f[f"RVE_DATASET/{nr_modes}m-{nr_points}ip"]
+        dset = self.get_dataset("DATASET", "RVE", nr_modes, nr_points)
+        rve_data = json.loads(dset)
 
         logger.debug("Loading rve model")
-        dset = f["MODEL"]
-        p_model = Path(dset.attrs["name"])
-        p_model.write_text(dset.asstr()[()])
+        dset = self.get_dataset("TEMPLATE", "MODEL")
+        p_model = Path("model.mdpa")
+        p_model.write_text(dset)
         rve_points, rve_cells = self.get_mesh(str(p_model))
 
         logger.debug("Loading rve materials")
-        dset = f["MATERIALS"]
-        p_materials = Path(dset.attrs["name"])
-        p_materials.write_text(dset.asstr()[()])
+        dset = self.get_dataset("TEMPLATE", "MATERIALS")
+        p_materials = Path("materials.json")
+        p_materials.write_text(dset)
         self.model, self.modelpart = init_kratos(str(p_materials.resolve()), str(p_model.resolve().parent/p_model.stem))
         p_materials.unlink()
         p_model.unlink()
@@ -343,9 +339,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 if __name__ == "__main__":
-    import sys
 
     ARGS = docopt(__doc__)
 
-    RECONST = Reconstruct(Path(ARGS["<resources>"]), root_path=Path(ARGS["<root>"]))
+    RECONST = Reconstruct(root_path=Path(ARGS["<root>"]))
     RECONST.reconstruc(Path(ARGS["<runtime_data>"]))
