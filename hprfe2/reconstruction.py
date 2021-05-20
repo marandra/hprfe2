@@ -84,10 +84,8 @@ def reconstruct_displacement(common, n_modes):
 
     # Define parameters for reconstruction
     model_custom_path = common.bases_path / "model_custom.mdpa"
-    strain_bases_fname = common.get_bases_fname("STRAIN")
     global_index_path = common.bases_path / "auxiliar_global_index"
     materials_fname = common.training_path / "materials.json"
-    correl_fname = common.bases_path / "correlation_strain_{}m.npy".format(n_modes)
 
     params_reconstr_dict = {
         "problem_data": {
@@ -136,12 +134,8 @@ def reconstruct_displacement(common, n_modes):
                     "process_name": "LoadModesToProperties",
                     "Parameters": {
                         "model_part_name": "Microstructure.RVE",
-                        "modes_filename": str(strain_bases_fname),
-                        "modes_file_format": "binary",
                         "global_index_filename": str(global_index_path),
                         "number_modes_to_load": n_modes,
-                        "modes_to_nodes_matrix_filename": str(correl_fname),
-                        "modes_to_nodes_matrix_file_format": "binary",
                         "root_path": str(common.root_path.resolve()),
                     },
                 }
@@ -268,12 +262,12 @@ def reconstruct_displacement(common, n_modes):
 # Functions for DAMAGE Reconstruction
 #
 def load_rve_data(rve_data):
-    logger.info("Reading reduced set integration points")
+    logger.debug("Reading reduced set integration points")
     reduced_ip_set = rve_data["ip_global_id"]
-    logger.info("Nr ip detected: {}".format(numpy.shape(reduced_ip_set)[0]))
-    logger.info("Reading reduced set integration weights")
+    logger.debug("Nr ip detected: {}".format(numpy.shape(reduced_ip_set)[0]))
+    logger.debug("Reading reduced set integration weights")
     reduced_ip_weights = numpy.array(rve_data["ip_weight"])
-    logger.info("Nr weights detected: {}".format(numpy.shape(reduced_ip_weights)[0]))
+    logger.debug("Nr weights detected: {}".format(numpy.shape(reduced_ip_weights)[0]))
     return reduced_ip_set, reduced_ip_weights
 
 
