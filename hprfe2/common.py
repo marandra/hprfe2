@@ -270,6 +270,8 @@ class Common:
         with h5py.File(self.resources_path, "r") as f:
             if group in ["BASES", "CORRELATION"]:  # numpy
                 return f[group][dsname][()]
+            elif group in ["DATASET"]:  # json
+                return json.loads(f[group][dsname].asstr()[()])
             else:  # text
                 return f[group][dsname].asstr()[()]
 

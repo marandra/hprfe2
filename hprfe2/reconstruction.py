@@ -5,8 +5,6 @@ RECONSTRUCTION: description here
 import logging
 import json
 import numpy
-from pathlib import Path
-import h5py
 import KratosMultiphysics
 import KratosMultiphysics.MultiscaleROMApplication
 from KratosMultiphysics.analysis_stage import AnalysisStage
@@ -16,18 +14,12 @@ from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_solv
 from KratosMultiphysics.StructuralMechanicsApplication import (
     structural_mechanics_analysis,
 )
-import common
-import bases
-
 
 logger = logging.getLogger(__name__)
-
 
 #
 # Classes for setting Kratos solvers
 #
-
-
 class DisplacementReconstructionSolver(MechanicalSolver):
     def __init__(self, model, custom_settings):
         super(DisplacementReconstructionSolver, self).__init__(model, custom_settings)
@@ -72,18 +64,16 @@ def reconstruct_displacement_all(common):
         "DisplacementElement", "DisplacementCustomElement"
     )
     model_custom_path.write_text(model_custom_text)
-    ###
 
     for pair in common.config["reconstruction_pairs"]:
         nm = pair[0]
-        path = common.bases_path / common.config["correl_strain_pattern"].format(nm)
-        if common.skip_calculation(path):
-            logger.info("{} exists. Skipping.".format(path.name))
+        if common.has_dataset("CORRELATION", "STRAIN", nm):
+            logger.info(f'CORRELATION {common.name_dataset("STRAIN", nm)} exists. Skipping.')
             continue
-        reconstruct_displacement(common, nm)
+        else:
+            reconstruct_displacement(common, nm)
 
     global_index_path.unlink(missing_ok=True)
-
     return
 
 def reconstruct_displacement(common, n_modes):
@@ -284,8 +274,7 @@ def load_rve_data(rve_data):
     return reduced_ip_set, reduced_ip_weights
 
 
-def load_energy_modes(common, modes_filename, reduced_ip_set, nr_modes):
-    #modes = numpy.load(modes_filename)[:, :nr_modes]
+def load_energy_modes(common, reduced_ip_set, nr_modes):
     modes = common.get_dataset("BASES", "RVALUE")[:, :nr_modes]
     reduced_modes = modes[reduced_ip_set, :]
     logger.info(
@@ -300,7 +289,7 @@ def load_energy_modes(common, modes_filename, reduced_ip_set, nr_modes):
 
 
 def compute_reconstruction_system(
-    reduced_ip_set, reduced_ip_weights, energy_modes, reduced_energy_modes
+    reduced_ip_weights, energy_modes, reduced_energy_modes
 ):
     logger.info("Computing COMPLETE system")
     logger.debug("-- A = reduced modes.T * weights * reduced modes")
@@ -327,17 +316,14 @@ def compute_reconstruction_system(
     return aux_2
 
 
-def compute_system(common, rve_data_filename, energy_modes_filename, nr_modes):
+def compute_system(common, rve_data, nr_modes):
     """ docstrings """
-
-    with open(rve_data_filename) as f:
-        rve_data = json.load(f)
     reduced_ip_set, reduced_ip_weights = load_rve_data(rve_data)
     modes, reduced_modes = load_energy_modes(common,
-        energy_modes_filename, reduced_ip_set, nr_modes
+        reduced_ip_set, nr_modes
     )
     A = compute_reconstruction_system(
-        reduced_ip_set, reduced_ip_weights, modes, reduced_modes
+        reduced_ip_weights, modes, reduced_modes
     )
     return A
 
@@ -348,108 +334,48 @@ def reconstruct_damage_all(common):
     for pair in common.config["reconstruction_pairs"]:
         nm = pair[0]
         np = pair[1]
-        path = common.bases_path / common.config["correl_rvalue_pattern"].format(nm, np)
-        if common.skip_calculation(path):
-            logger.info("{} exists. Skipping.".format(path.name))
+        if common.has_dataset("CORRELATION", "RVALUE", nm, np):
+            logger.info(f'CORRELATION {common.name_dataset("RVALUE", nm, np)} exists. Skipping.')
             continue
-        reconstruct_damage(common, nm, np)
+        else:
+            reconstruct_damage(common, nm, np)
     return
 
 
 def reconstruct_damage(common, nm, np):
-    rvalue_bases_fn = common.get_bases_fname(common.config["rvalue_name"])
-    rve_data_fn = common.datasets_path / common.rve_fname(9, nm, np)
-    A = compute_system(common, rve_data_fn, rvalue_bases_fn, nm)
-    path = common.bases_path / common.config["correl_rvalue_pattern"].format(nm, np)
-    logger.info("Saving {}".format(path))
-    numpy.save(path, A)
+    rve_data = common.get_dataset("DATASET", "RVE", nm, np)
+    logger.info(f'Computing CORRELATION {common.name_dataset("RVALUE", nm, np)}' )
+    A = compute_system(common, rve_data, nm)
     common.set_dataset(A, "CORRELATION", "RVALUE", nm, np)
     return
 
 
-def correlation_strain_names(common):
-    nmodes = []
-    for pair in common.config["reconstruction_pairs"]:
-        nmodes.append(pair[0])
-    data = []
-    for nm in set(nmodes):
-        path = common.bases_path / common.config["correl_strain_pattern"].format(nm)
-        data.append((nm, path))
-    return data
-
-
-def correlation_rvalue_names(common):
-    data = []
-    for pair in common.config["reconstruction_pairs"]:
-        nm = pair[0]
-        np = pair[1]
-        path = common.bases_path / common.config["correl_rvalue_pattern"].format(nm, np)
-        data.append((nm, np, path))
-    return data
-
-
-def dataset_names(common):
-    data = []
-    for pair in common.config["reconstruction_pairs"]:
-        nm = pair[0]
-        np = pair[1]
-        path = common.datasets_path / common.rve_fname_pattern.format(9, nm, np)
-        data.append((nm, np, path))
-    return data
-
-
-def write_resources_h5(common):
-    """Creates resources file (hdf5 format) for reconsruction"""
-
-    # 4. Model
-    with h5py.File(common.resources_path, "a") as f:
-        group = "TEMPLATE/MODEL"
-        path = common.training_path / common.config["training_model_fname"]
-        dset = f.create_dataset(f"{group}", data=path.read_text())
-        dset.attrs["name"] = path.name
+#def correlation_strain_names(common):
+#    nmodes = []
+#    for pair in common.config["reconstruction_pairs"]:
+#        nmodes.append(pair[0])
+#    data = []
+#    for nm in set(nmodes):
+#        path = common.bases_path / common.config["correl_strain_pattern"].format(nm)
+#        data.append((nm, path))
+#    return data
 #
 #
-    # 6. Materials
-    with h5py.File(common.resources_path, "a") as f:
-        group = "TEMPLATE/MATERIALS"
-        path = common.training_path / common.config["training_materials_fname"]
-        dset = f.create_dataset(f"{group}", data=path.read_text())
-        dset.attrs["name"] = path.name
+#def correlation_rvalue_names(common):
+#    data = []
+#    for pair in common.config["reconstruction_pairs"]:
+#        nm = pair[0]
+#        np = pair[1]
+#        path = common.bases_path / common.config["correl_rvalue_pattern"].format(nm, np)
+#        data.append((nm, np, path))
+#    return data
 #
 #
-#def export_resources_h5(common):
-#    """Creates resources file (hdf5 format) for reconsruction"""
-#    with h5py.File(common.config["resources_fname"], "r") as f:
-#
-#        # 1. Bases
-#        group = "BASES_STRAIN"
-#        dset = f[group]
-#        numpy.save(dset.attrs["name"], dset)
-#
-#        # 2. Correlation strain
-#        group = "CORRELATION_STRAIN"
-#        for ds in f[group]:
-#            dset = f[f"{group}/{ds}"]
-#            numpy.save(dset.attrs["name"], dset)
-#
-#        ## 3. Correlation damage
-#        group = "CORRELATION_RVALUE"
-#        for ds in f[group]:
-#            dset = f[f"{group}/{ds}"]
-#            numpy.save(dset.attrs["name"], dset)
-#
-#        # 4. Model
-#        group = "MODEL"
-#        dset = f[group]
-#        Path(dset.attrs["name"]).write_text(dset.asstr()[()])
-#
-#        # 5.Datasets
-#        group = "RVE_DATASET"
-#        for ds in f[group]:
-#            dset = f[f"{group}/{ds}"]
-#            Path(dset.attrs["name"]).write_text(dset.asstr()[()])
-#
-#        # 6. Materials
-#        group = "MATERIALS"
-#        dset = f[group]
-#        Path(dset.attrs["name"]).write_text(dset.asstr()[()])
+#def dataset_names(common):
+#    data = []
+#    for pair in common.config["reconstruction_pairs"]:
+#        nm = pair[0]
+#        np = pair[1]
+#        path = common.datasets_path / common.rve_fname_pattern.format(9, nm, np)
+#        data.append((nm, np, path))
+#    return data
