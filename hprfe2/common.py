@@ -94,7 +94,7 @@ class Common:
             "case_path_pattern": "case_{}",
             "snapshots_fname": "snapshots.h5",
             # bases and roc sets files stuff
-            "bases_path": "bases",
+            "bases_path": "auxiliar",
             "bases_fname_pattern": "bases_{}_{}m.npy",
             "local_bases_fname_pattern": "bases_inelastic_local_{}.npy",
             "local_sv_fname_pattern": "sv_inelastic_local_{}.dat",

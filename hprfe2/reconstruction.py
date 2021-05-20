@@ -348,34 +348,3 @@ def reconstruct_damage(common, nm, np):
     A = compute_system(common, rve_data, nm)
     common.set_dataset(A, "CORRELATION", "RVALUE", nm, np)
     return
-
-
-#def correlation_strain_names(common):
-#    nmodes = []
-#    for pair in common.config["reconstruction_pairs"]:
-#        nmodes.append(pair[0])
-#    data = []
-#    for nm in set(nmodes):
-#        path = common.bases_path / common.config["correl_strain_pattern"].format(nm)
-#        data.append((nm, path))
-#    return data
-#
-#
-#def correlation_rvalue_names(common):
-#    data = []
-#    for pair in common.config["reconstruction_pairs"]:
-#        nm = pair[0]
-#        np = pair[1]
-#        path = common.bases_path / common.config["correl_rvalue_pattern"].format(nm, np)
-#        data.append((nm, np, path))
-#    return data
-#
-#
-#def dataset_names(common):
-#    data = []
-#    for pair in common.config["reconstruction_pairs"]:
-#        nm = pair[0]
-#        np = pair[1]
-#        path = common.datasets_path / common.rve_fname_pattern.format(9, nm, np)
-#        data.append((nm, np, path))
-#    return data

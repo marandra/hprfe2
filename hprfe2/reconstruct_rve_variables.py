@@ -225,8 +225,7 @@ class Reconstruct(Common):
 
         logger.debug("Loading rve data")
         #dset = f[f"RVE_DATASET/{nr_modes}m-{nr_points}ip"]
-        dset = self.get_dataset("DATASET", "RVE", nr_modes, nr_points)
-        rve_data = json.loads(dset)
+        rve_data = self.get_dataset("DATASET", "RVE", nr_modes, nr_points)
 
         logger.debug("Loading rve model")
         dset = self.get_dataset("TEMPLATE", "MODEL")
