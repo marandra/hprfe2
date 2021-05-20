@@ -5,7 +5,8 @@ PACK: pending description here.
 import json
 from pathlib import Path
 import h5py
-#from meshio.xdmf import common
+
+# from meshio.xdmf import common
 import numpy
 import logging
 from common import Common
@@ -50,7 +51,7 @@ def unpack_ip_data(iw_list):
 
 
 def parse_strain_bases(common, iw_list, nr_modes):
-    #strain_bases = h5py.File(resources_path, "r")["BASES_STRAIN"][:, :nr_modes]
+    # strain_bases = h5py.File(resources_path, "r")["BASES_STRAIN"][:, :nr_modes]
     strain_bases = common.get_dataset("BASES", "STRAIN")[:, :nr_modes]
     nr_comps = 6
     out_B = []
@@ -69,16 +70,14 @@ def create_rve_params_structure(
     reduced_ip_set,
     rve_modelpart,
 ):
-    """ gather and pack IP data for RVE constitutive law """
+    """gather and pack IP data for RVE constitutive law"""
     rve_params = {}
     out_e, out_lip, out_w, out_gip = unpack_ip_data(reduced_ip_set)
     # required data
     rve_params["ip_global_id"] = out_gip
     rve_params["ip_weight"] = out_w
     rve_params["ip_property_id"] = get_properties(rve_modelpart, reduced_ip_set)
-    rve_params["ip_strain_modes"] = parse_strain_bases(
-        common, reduced_ip_set, nr_modes
-    )
+    rve_params["ip_strain_modes"] = parse_strain_bases(common, reduced_ip_set, nr_modes)
     rve_params["material_parameters"] = read_json(rve_materials_filename)
     #  metadata
     rve_params["nr_modes"] = nr_modes
@@ -89,7 +88,7 @@ def create_rve_params_structure(
 
 
 def write_datasets(common):
-    """ docstring here """
+    """docstring here"""
 
     import KratosMultiphysics
     import KratosMultiphysics.MultiscaleROMApplication
@@ -138,10 +137,10 @@ def write_datasets(common):
                     modelpart,
                 )
                 common.set_dataset(json.dumps(rve_params), "DATASET", "RVE", m, p)
-                write_json(rve_fname, rve_params) # Leave it for now
+                write_json(rve_fname, rve_params)  # Leave it for now
             else:
                 # TODO: added "9" as a workaround while we find the rigth heuristics
-                #if common.skip_calculation(rve_fname):
+                # if common.skip_calculation(rve_fname):
                 logger.info("File {} exists. Skipping calculation".format(rve_fname))
                 continue
 

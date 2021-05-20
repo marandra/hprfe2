@@ -36,7 +36,6 @@ TEMPL_FN = [
 ]
 
 
-
 def create_launchers(path):
     """Create auxiliary files for running cases"""
 
@@ -83,7 +82,7 @@ done
     (path / fname).write_text(script)
 
 
-class Sampling():
+class Sampling:
     def __init__(self, common, args):
         self.common = common
         self.args = args
@@ -93,15 +92,13 @@ class Sampling():
         for f in TEMPL_FN:
             pf = self.common.training_path / f
             if not pf.exists():
-                logger.error(
-                    f"Missing file '{pf}'. Aborting."
-                )
+                logger.error(f"Missing file '{pf}'. Aborting.")
                 exit()
 
         # Strain file must be present
         pf = self.common.training_path / STRAIN_FN[0]
         if not pf.exists():
-            logger.error( f"No strain file '{pf}'present. Aborting.")
+            logger.error(f"No strain file '{pf}'present. Aborting.")
             exit()
         n = len(pf.read_text().splitlines())
 
@@ -116,7 +113,7 @@ class Sampling():
             exit()
 
         ## If --auto-strain option, create strain set file
-        #if args["--auto-strain"] is not None:
+        # if args["--auto-strain"] is not None:
         #    n = int(args["--auto-strain"])
         #    text = ""
         #    for i in range(1, n + 1):
@@ -163,7 +160,7 @@ class Sampling():
         logger.info("Written launch scripts")
 
 
-class Case():
+class Case:
     def __init__(self, common, i, strain_vector, is_validation=False):
         self.name = common.case_name(i)
         self.path = common.training_path / self.name
@@ -178,15 +175,17 @@ class Case():
         m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
         p = json.loads(m_prop.read_text())
         print("DEBUG: READ SCALE FROM SOMEWHERE")
-        scale = 0.1 # DEBUG
+        scale = 0.1  # DEBUG
         vect = [f"{v} * t * (-1) * " + f"{scale}" for v in self.strain]
         p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
-        #p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = self.strain
+        # p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = self.strain
         # TODO: Fix the path, it need root_path. This is a workaround
         p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
             common.root_path
         )
-        c_prop = self.path / "ProjectParameters.json"  # destination case properties file
+        c_prop = (
+            self.path / "ProjectParameters.json"
+        )  # destination case properties file
         c_prop.write_text(json.dumps(p, indent=4))
         # customize no-output properties (for speedup calc) in validation cases
         if self.is_validation:
@@ -238,7 +237,7 @@ class Case():
         (self.path.parent / script_fname).write_text(script)
 
 
-#def print_histogram(values, bins=20, t0=0, t1=1):
+# def print_histogram(values, bins=20, t0=0, t1=1):
 #    text = "Elastic range distribution:\n\n"
 #    B = [0] * bins
 #    for v in values:

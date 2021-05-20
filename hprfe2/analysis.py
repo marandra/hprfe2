@@ -111,7 +111,7 @@ def get_properties_from_rve(rve_fname):
 
 
 def load_case(case):
-    """displacement docstrings here """
+    """displacement docstrings here"""
     params = json.loads((case / "ProjectParameters.json").read_text())
 
     # remove processes

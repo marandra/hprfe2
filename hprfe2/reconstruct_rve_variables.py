@@ -81,7 +81,7 @@ def strain_voigt_to_tensor(strain_vector):
 def analize_runtime_data(data):
     nr_timesteps = len(data["interpolation_parameters"])
     nr_modes = len(data["interpolation_parameters"][0])
-    #nr_points = len(data["strain_energy"][0]) - 1
+    # nr_points = len(data["strain_energy"][0]) - 1
     nr_points = len(data["r_value"][0]) - 1
     logger.info(
         "   - detected: {} steps, {} modes, {} points".format(
@@ -91,7 +91,7 @@ def analize_runtime_data(data):
     return nr_timesteps, nr_modes, nr_points
 
 
-#def init_kratos(aux_postproc_path):
+# def init_kratos(aux_postproc_path):
 def init_kratos(pmaterials, pmodel):
     """Load model and modelparts.
 
@@ -117,9 +117,7 @@ def init_kratos(pmaterials, pmodel):
                 "input_type": "mdpa",
                 "input_filename": "{}".format(pmodel),
             },
-            "material_import_settings": {
-                "materials_filename": "{}".format(pmaterials)
-            },
+            "material_import_settings": {"materials_filename": "{}".format(pmaterials)},
         },
     }
 
@@ -138,7 +136,7 @@ class Reconstruct(Common):
 
     def element_map(self):
         """Compute auxiliar vector with the index of an element in the global vector of dofs.
-    
+
         Returns:
             dict -- for each element, location of beginnin in the global dof vector
             dict -- for each element, number of integration points
@@ -224,7 +222,7 @@ class Reconstruct(Common):
         r_value_correl = self.get_dataset("CORRELATION", "RVALUE", nr_modes, nr_points)
 
         logger.debug("Loading rve data")
-        #dset = f[f"RVE_DATASET/{nr_modes}m-{nr_points}ip"]
+        # dset = f[f"RVE_DATASET/{nr_modes}m-{nr_points}ip"]
         rve_data = self.get_dataset("DATASET", "RVE", nr_modes, nr_points)
 
         logger.debug("Loading rve model")
@@ -237,7 +235,9 @@ class Reconstruct(Common):
         dset = self.get_dataset("TEMPLATE", "MATERIALS")
         p_materials = Path("materials.json")
         p_materials.write_text(dset)
-        self.model, self.modelpart = init_kratos(str(p_materials.resolve()), str(p_model.resolve().parent/p_model.stem))
+        self.model, self.modelpart = init_kratos(
+            str(p_materials.resolve()), str(p_model.resolve().parent / p_model.stem)
+        )
         p_materials.unlink()
         p_model.unlink()
 

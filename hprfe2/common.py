@@ -121,7 +121,7 @@ class Common:
         self.bases_path = self.root_path / self.config["bases_path"]
         self.datasets_path = self.root_path / self.config["datasets_path"]
         self.multiscale_path = self.root_path / self.config["multiscale_path"]
-        #self.resources_path = self.root_path / self.config["resources_path"]
+        # self.resources_path = self.root_path / self.config["resources_path"]
         self.resources_path = self.root_path / f"{self.root_path.name}.h5"
 
         # initialization of resources file
@@ -235,18 +235,17 @@ class Common:
             )
         return files[0]
 
-
     def init_dataset(self):
         # Check valid keys
-        #valid_keys = {}
-        #valid_keys["BASES"] = ["STRAIN", "ENERGY", "RVALUE", "TEST"]
-        #valid_keys["CORRELATION"] = ["STRAIN", "RVALUE"]
-        #valid_keys["DATASET"] = ["RVE"]
-        #valid_keys["TEMPLATE"] = ["MODEL", "MATERIALS", "PARAMETERS", "MAIN", "RESOURCES"]
-        #if group not in valid_keys.keys():
+        # valid_keys = {}
+        # valid_keys["BASES"] = ["STRAIN", "ENERGY", "RVALUE", "TEST"]
+        # valid_keys["CORRELATION"] = ["STRAIN", "RVALUE"]
+        # valid_keys["DATASET"] = ["RVE"]
+        # valid_keys["TEMPLATE"] = ["MODEL", "MATERIALS", "PARAMETERS", "MAIN", "RESOURCES"]
+        # if group not in valid_keys.keys():
         #   logger.error(f"Invalid group name {group}")
         #   exit()
-        #if dataset not in valid_keys[group]:
+        # if dataset not in valid_keys[group]:
         #   logger.error(f"Invalid dataset name {dataset}")
         #   exit()
         with h5py.File(self.resources_path, "a") as f:
@@ -285,6 +284,7 @@ class Common:
         dsname = self.name_dataset(dataset, nmodes, npoints)
         with h5py.File(self.resources_path, "a") as f:
             return dsname in f[group]
+
 
 #####################################################################
 # main

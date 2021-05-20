@@ -282,12 +282,12 @@ def create_properties_file(m_prop, c_prop, t_prop, quiet=False):
     ]
     strain_versor = [float(x.split()[0]) for x in _list]
     ampl = float(_list[0].split()[-1])
-    #strain_versor = test_props["processes"]["loads_process_list"][0]["Parameters"][
+    # strain_versor = test_props["processes"]["loads_process_list"][0]["Parameters"][
     #    "initial_strain"
-    #]
-    #ampl = test_props["processes"]["loads_process_list"][0]["Parameters"][
+    # ]
+    # ampl = test_props["processes"]["loads_process_list"][0]["Parameters"][
     #    "lookuptable_mult"
-    #][-1]
+    # ][-1]
 
     model_props = json.loads(m_prop.read_text())
     # compute displacements u = E * x

@@ -6,6 +6,7 @@ from pathlib import Path
 import KratosMultiphysics
 import KratosMultiphysics.StructuralMechanicsApplication
 import KratosMultiphysics.MultiscaleROMApplication.periodic_bc_analysis as analysis
+
 # import KratosMultiphysics.MultiscaleROMApplication.periodic_bc_analysis_xz as analysis
 
 
@@ -156,13 +157,12 @@ def adjust_elastic_range(path, outfile="elastic.dat"):
 
 def detect_elastic_range(path, t0, t1, fo):
     """Performs several 1-timestep runs to find the boundary of the elastic range.
-It receives the time range in which to look
+    It receives the time range in which to look
 
-path: base working path
-t0: initial time
-t1: final time
-fo: file handler where to write iteration messages
-"""
+    path: base working path
+    t0: initial time
+    t1: final time
+    fo: file handler where to write iteration messages"""
 
     param = json.loads((path / "ProjectParameters.json").resolve().read_text())
 
@@ -183,12 +183,12 @@ fo: file handler where to write iteration messages
     }
     param["processes"]["my_processes"] = [block]
     #  Adapt model and material files
-    #param["solver_settings"]["model_import_settings"]["input_filename"] = str(
+    # param["solver_settings"]["model_import_settings"]["input_filename"] = str(
     #    (path / "model").resolve()
-    #)
-    #param["solver_settings"]["material_import_settings"]["materials_filename"] = str(
+    # )
+    # param["solver_settings"]["material_import_settings"]["materials_filename"] = str(
     #    (path / "materials.json").resolve()
-    #)
+    # )
 
     # Begin iterations
     text = ""

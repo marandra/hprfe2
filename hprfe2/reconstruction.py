@@ -68,7 +68,9 @@ def reconstruct_displacement_all(common):
     for pair in common.config["reconstruction_pairs"]:
         nm = pair[0]
         if common.has_dataset("CORRELATION", "STRAIN", nm):
-            logger.info(f'CORRELATION {common.name_dataset("STRAIN", nm)} exists. Skipping.')
+            logger.info(
+                f'CORRELATION {common.name_dataset("STRAIN", nm)} exists. Skipping.'
+            )
             continue
         else:
             reconstruct_displacement(common, nm)
@@ -76,8 +78,9 @@ def reconstruct_displacement_all(common):
     global_index_path.unlink(missing_ok=True)
     return
 
+
 def reconstruct_displacement(common, n_modes):
-    """displacement docstrings here """
+    """displacement docstrings here"""
 
     # Define parameters for reconstruction
     model_custom_path = common.bases_path / "model_custom.mdpa"
@@ -139,7 +142,7 @@ def reconstruct_displacement(common, n_modes):
                         "number_modes_to_load": n_modes,
                         "modes_to_nodes_matrix_filename": str(correl_fname),
                         "modes_to_nodes_matrix_file_format": "binary",
-                        "root_path": str(common.root_path.resolve())
+                        "root_path": str(common.root_path.resolve()),
                     },
                 }
             ],
@@ -317,14 +320,10 @@ def compute_reconstruction_system(
 
 
 def compute_system(common, rve_data, nr_modes):
-    """ docstrings """
+    """docstrings"""
     reduced_ip_set, reduced_ip_weights = load_rve_data(rve_data)
-    modes, reduced_modes = load_energy_modes(common,
-        reduced_ip_set, nr_modes
-    )
-    A = compute_reconstruction_system(
-        reduced_ip_weights, modes, reduced_modes
-    )
+    modes, reduced_modes = load_energy_modes(common, reduced_ip_set, nr_modes)
+    A = compute_reconstruction_system(reduced_ip_weights, modes, reduced_modes)
     return A
 
 
@@ -335,7 +334,9 @@ def reconstruct_damage_all(common):
         nm = pair[0]
         np = pair[1]
         if common.has_dataset("CORRELATION", "RVALUE", nm, np):
-            logger.info(f'CORRELATION {common.name_dataset("RVALUE", nm, np)} exists. Skipping.')
+            logger.info(
+                f'CORRELATION {common.name_dataset("RVALUE", nm, np)} exists. Skipping.'
+            )
             continue
         else:
             reconstruct_damage(common, nm, np)
@@ -344,7 +345,7 @@ def reconstruct_damage_all(common):
 
 def reconstruct_damage(common, nm, np):
     rve_data = common.get_dataset("DATASET", "RVE", nm, np)
-    logger.info(f'Computing CORRELATION {common.name_dataset("RVALUE", nm, np)}' )
+    logger.info(f'Computing CORRELATION {common.name_dataset("RVALUE", nm, np)}')
     A = compute_system(common, rve_data, nm)
     common.set_dataset(A, "CORRELATION", "RVALUE", nm, np)
     return

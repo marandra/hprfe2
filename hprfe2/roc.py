@@ -169,7 +169,7 @@ def compute_rom_weights(ip_data):
 
 
 def write_ip_sets(common):
-    """ docstring here """
+    """docstring here"""
 
     import KratosMultiphysics
     import KratosMultiphysics.MultiscaleROMApplication
@@ -234,7 +234,7 @@ def write_ip_sets(common):
         else:  # HPROM case
             logger.info("Generating {}".format(roc_filename))
             # compute ROC list
-            energy_bases = common.get_dataset("BASES", "ENERGY")[:,:nr_p]
+            energy_bases = common.get_dataset("BASES", "ENERGY")[:, :nr_p]
             roc_list = compute_hprom_weights(ip_data, nr_p, energy_bases)
 
         with open(roc_filename, "w") as ofile:
