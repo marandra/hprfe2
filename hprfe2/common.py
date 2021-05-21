@@ -249,7 +249,7 @@ class Common:
         # valid_keys["BASES"] = ["STRAIN", "ENERGY", "RVALUE", "TEST"]
         # valid_keys["CORRELATION"] = ["STRAIN", "RVALUE"]
         # valid_keys["DATASET"] = ["RVE"]
-        # valid_keys["TEMPLATE"] = ["MODEL", "MATERIALS", "PARAMETERS", "MAIN", "RESOURCES"]
+        # valid_keys["TEMPLATE"] = ["MODEL", "MATERIALS", "PARAMETERS", "MAIN", "RESOURCES", "STRAINSET"]
         # if group not in valid_keys.keys():
         #   logger.error(f"Invalid group name {group}")
         #   exit()
@@ -275,17 +275,21 @@ class Common:
         """Get dataset from database h5 file"""
         dsname = self.name_dataset(dataset, nmodes, npoints)
         with h5py.File(self.resources_path, "r") as f:
-            if group in ["BASES", "CORRELATION"]:  # numpy
+            if group in ["BASES", "CORRELATION"]:  # numpy, returns arary
                 return f[group][dsname][()]
-            elif group in ["DATASET"]:  # json
+            elif group in ["DATASET"]:  # json, returns dictionary
                 return json.loads(f[group][dsname].asstr()[()])
-            else:  # text
+            elif group in ["TEMPLATE"]:  # template files, returns text
+                return f[group][dsname].asstr()[()]
+            else:  # default, retunrs dataset as is
                 return f[group][dsname].asstr()[()]
 
-    def set_dataset(self, data, group, dataset, nmodes=None, npoints=None):
+    def set_dataset(self, data, group, dataset, nmodes=None, npoints=None, replace=False):
         """Create dataset in database h5 file. Only valid groups and datasets"""
         dsname = self.name_dataset(dataset, nmodes, npoints)
         with h5py.File(self.resources_path, "a") as f:
+            if dsname in f[group] and replace:
+                del f[group][dataset]
             f.create_dataset(f"{group}/{dsname}", data=data)
 
     def has_dataset(self, group, dataset, nmodes=None, npoints=None):
