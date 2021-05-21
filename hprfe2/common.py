@@ -83,12 +83,12 @@ class Common:
             "reuse_existing_files": True,
             "ENERGY": {
                 "nr_mode_elastic": 21,
-                "nr_mode_inelastic": -1,
+                "nr_mode_inelastic": 800,
                 "svd_cutoff": 1e-4,
             },
             "STRAIN": {
                 "nr_mode_elastic": 6,
-                "nr_mode_inelastic": -1,
+                "nr_mode_inelastic": 800,
                 "svd_cutoff": 1e-4,
             },
             "RVALUE": {
