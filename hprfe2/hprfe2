@@ -168,7 +168,8 @@ if __name__ == "__main__":
     # pprint(ARGS)
 
     # Configure logger
-    LOGLEVEL = [logging.INFO, logging.INFO, logging.DEBUG][ARGS["-v"]]
+    LOGLEVEL = logging.DEBUG
+    #LOGLEVEL = [logging.INFO, logging.INFO, logging.DEBUG][ARGS["-v"]]
     # LOGLEVEL = [logging.INFO, logging.VERBOSE, logging.DEBUG][ARGS['-v']]
     logging.basicConfig(
         format="[%(asctime)s] %(message)s",

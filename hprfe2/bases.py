@@ -29,11 +29,10 @@ def _get_shape_of_snapshots_in_case(spath, group, field):
     with h5py.File(spath, "r") as f:
         try:
             d = f[group][field]
-            for k, v in d.items():
+            for _, v in d.items():
                 rows = len(v)  # TODO not optimal. read only once
                 cols += 1
         except KeyError:
-            # not counting missing datasets
             pass
     return rows, cols
 
@@ -48,15 +47,11 @@ def _read_snapshots_in_case(spath, group, field):
     with h5py.File(spath, "r") as f:
         try:
             d = f[group][field]
-            for k, v in d.items():
+            for _, v in d.items():
                 snapshots[:, column] = v
                 column += 1
         except KeyError:
-            logger.debug(
-                "    skipping {}/{} of {} (dataset not present)".format(
-                    group, field, spath.parent.name
-                )
-            )
+            logger.debug(f"    skipping {group}/{field} of {spath.parent.name} (dataset not present)")
     return snapshots
 
 
@@ -70,7 +65,7 @@ def read_snapshots(common, cases, group, field):
     for path in paths:
         r, c = _get_shape_of_snapshots_in_case(path, group, field)
         cols += c
-        rows = r
+        rows = max(r, rows)
 
     logger.info("  - loading {} snapshots".format(cols))
     arrays = numpy.empty([rows, cols])
@@ -218,32 +213,34 @@ def compute_svd(common, X, nr_modes):
 
 def create_bases(
     common,
-    field_name,
-    nr_elastic_modes,
-    nr_inelastic_modes,
+    field,
     cases_path,
-    cutoff_tol,
 ):
-    logger.info("Generating {} bases".format(field_name))
+    logger.info(f"Generating {field} bases")
 
     t0 = time.time()
+
+    nr_elastic_modes = common.config[field]["nr_mode_elastic"]
+    nr_inelastic_modes = common.config[field]["nr_mode_inelastic"]
+    cutoff_tol = common.config[field]["svd_cutoff"]
+
     # Snapshots splitted in elastic and inelastic groups
     if nr_elastic_modes > 0:
         logger.info("- Processing ELASTIC snapshots")
-        X = read_snapshots(common, cases_path, "ELASTIC", field_name)
+        X = read_snapshots(common, cases_path, "ELASTIC", field)
         Ue = compute_svd(common, X, nr_elastic_modes)
         os.rename(
             common.bases_path / "singular_values.dat",
-            common.bases_path / "sv_{}_elastic.dat".format(field_name),
+            common.bases_path / f"sv_{field}_elastic.dat",
         )
 
         logger.info("- Processing INELASTIC modes")
-        X = read_local_svd(common, cases_path, field_name, cutoff_tol)
+        X = read_local_svd(common, cases_path, field, cutoff_tol)
         X = remove_elastic_modes(X, Ue)
         Ui = compute_svd(common, X, nr_inelastic_modes)
         os.rename(
             common.bases_path / "singular_values.dat",
-            common.bases_path / "sv_{}_inelastic.dat".format(field_name),
+            common.bases_path / f"sv_{field}_inelastic.dat",
         )
 
         U = numpy.hstack([Ue, Ui])
@@ -254,11 +251,11 @@ def create_bases(
             "Nr of elastic modes set to zero -> "
             "Not discriminating elastic/inelastic snapshots"
         )
-        X = read_snapshots(cases_path, "INELASTIC", field_name)
+        X = read_snapshots(cases_path, "INELASTIC", field)
         U = compute_svd(X, nr_inelastic_modes)
         os.rename(
             common.bases_path / "singular_values.dat",
-            common.bases_path / "sv_{}.dat".format(field_name),
+            common.bases_path / f"sv_{field}.dat",
         )
 
     logger.info("  Elapsed time: {:.1f}s".format(time.time() - t0))
@@ -337,65 +334,24 @@ def run(common):
     #
     # generate missing local bases
     #
-    generate_missing_local_bases(
-        common,
-        common.config["energy_name"],
-    )
-    generate_missing_local_bases(
-        common,
-        common.config["strain_name"],
-    )
-    generate_missing_local_bases(
-        common,
-        common.config["rvalue_name"],
-    )
+    for field in ["ENERGY", "STRAIN", "RVALUE"]:
+        generate_missing_local_bases(
+            common,
+            field,
+        )
 
     #
     # compute bases
     #
-    group = "BASES"
-    dataset = "ENERGY"
-    if common.has_dataset(group, dataset):
-        logger.info(f"Dataset BASES ENERGY exits. Skipping.")
-    else:
-        U = create_bases(
-            common,
-            "ENERGY",
-            common.config["ENERGY"]["nr_mode_elastic"],
-            common.config["ENERGY"]["nr_mode_inelastic"],
-            training_set,
-            common.config["ENERGY"]["svd_cutoff"],
-        )
-        common.set_dataset(U, group, dataset)
-
-    dataset = "STRAIN"
-    if common.has_dataset(group, dataset):
-        logger.info(f"Dataset BASES STRAIN exits. Skipping.")
-    else:
-        U = create_bases(
-            common,
-            "STRAIN",
-            common.config["STRAIN"]["nr_mode_elastic"],
-            common.config["STRAIN"]["nr_mode_inelastic"],
-            training_set,
-            common.config["STRAIN"]["svd_cutoff"],
-        )
-        common.set_dataset(U, group, dataset)
-
-    dataset = "RVALUE"
-    if common.has_dataset(group, dataset):
-        logger.info(f"Dataset BASES RVALUE exits. Skipping.")
-    else:
-        U = create_bases(
-            common,
-            "RVALUE",
-            common.config["RVALUE"]["nr_mode_elastic"],
-            common.config["RVALUE"]["nr_mode_inelastic"],
-            training_set,
-            common.config["RVALUE"]["svd_cutoff"],
-        )
-        common.set_dataset(U, group, dataset)
-
-    logger.info("Finished -----------------------------------------")
+    for field in ["ENERGY", "STRAIN", "RVALUE"]:
+        if common.has_dataset("BASES", field):
+            logger.info(f"Dataset BASES/{field} exits. Skipping.")
+        else:
+            U = create_bases(
+                common,
+                field,
+                training_set,
+            )
+            common.set_dataset(U, "BASES", field)
 
     return
