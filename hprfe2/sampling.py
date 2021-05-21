@@ -1,20 +1,23 @@
 """\
 
 Usage:
-    hprfe2 [-v] [-r PATH] deploy
+    hprfe2 [-v] [-r PATH] deploy [-f]
 
 Arguments:
-    -v                        Verbose output
+    -v --verbose              Verbose output
     -r PATH --root=PATH       Specify the root path of the project, where the
                               configuration file must be located [default: .]
+    -f --fromdb               (Over)write template files from db
 
 Commands:
     deploy                    Create sampling file structure and launch scripts, using
                               existing or provided template files
 
-Creates a file structure for sampling. It assumes templñate files are already present
-in the 'ROOT_PATH/sampling/' directory. It requires a file with strain vectors (Voigt
-notation) for the generation of the cases.
+Creates a file structure for sampling in the 'ROOT_PATH/sampling/' directory.
+Template files must be already present or use the -f option to write or overwrite
+them with the copy in the database. The template files in the database are updated
+every time the files are deployed. Template files require a file with a list of
+strain vectors (Voigt notation) for the definition of the training trajectories.
 """
 
 import logging
@@ -27,13 +30,13 @@ from common import Common
 logger = logging.getLogger(__name__)
 
 
-STRAIN_FN = ["strain_set.dat"]
-TEMPL_FN = [
-    "MainKratos.py",
-    "model.mdpa",
-    "materials.json",
-    "ProjectParameters.json",
-]
+TEMPL_FN = {
+    "MAIN": "MainKratos.py",
+    "MODEL": "model.mdpa",
+    "MATERIALS": "materials.json",
+    "PARAMETERS": "ProjectParameters.json",
+    "STRAINSET": "strain_set.dat",
+}
 
 
 def create_launchers(path):
@@ -89,20 +92,15 @@ class Sampling:
 
     def check_template(self):
         # Template files must be present
-        for f in TEMPL_FN:
+        for f in TEMPL_FN.values():
             pf = self.common.training_path / f
             if not pf.exists():
                 logger.error(f"Missing file '{pf}'. Aborting.")
                 exit()
 
-        # Strain file must be present
-        pf = self.common.training_path / STRAIN_FN[0]
-        if not pf.exists():
-            logger.error(f"No strain file '{pf}'present. Aborting.")
-            exit()
-        n = len(pf.read_text().splitlines())
-
         # Number of strains is greater that validation cases
+        pf = self.common.training_path / TEMPL_FN["STRAINSET"]
+        n = len(pf.read_text().splitlines())
         v = max(self.common.config["validation_dataset"])
         if n < v:
             logger.error(
@@ -112,30 +110,21 @@ class Sampling:
             )
             exit()
 
-        ## If --auto-strain option, create strain set file
-        # if args["--auto-strain"] is not None:
-        #    n = int(args["--auto-strain"])
-        #    text = ""
-        #    for i in range(1, n + 1):
-        #        b = bin(i)[2:].zfill(6)[::-1]  # binary i, pad with 0s, reverse
-        #        line = "{}  {}  {}  {}  {}  {}\n".format(*b)
-        #        text += line
-        #    dest = common.training_path / STRAIN_FN[0]
-        #    dest.write_text(text)
-        #    logger.info("Strain file generated ({} vectors)".format(n))
-
     def save_template(self):
-        if not self.common.has_dataset("TEMPLATE", "MODEL"):
-            path = self.common.training_path / "model.mdpa"
-            self.common.set_dataset(path.read_text(), "TEMPLATE", "MODEL")
+        for k, v in TEMPL_FN.items():
+            path = self.common.training_path / v
+            data = path.read_text()
+            self.common.set_dataset(data, "TEMPLATE", k, replace=True)
 
-        if not self.common.has_dataset("TEMPLATE", "MATERIALS"):
-            path = self.common.training_path / "materials.json"
-            self.common.set_dataset(path.read_text(), "TEMPLATE", "MATERIALS")
+    def load_template(self):
+        for k, v in TEMPL_FN:
+            data = self.common.get_dataset("TEMPLATE", k)
+            path = self.common.training_path / v
+            path.write_text(data)
 
     def generate_cases(self):
         # Generate cases
-        src = self.common.training_path / STRAIN_FN[0]
+        src = self.common.training_path / TEMPL_FN["STRAINSET"]
         strain_set = src.read_text().splitlines()
         self.cases = []
         for i, line in enumerate(strain_set):
@@ -144,7 +133,6 @@ class Sampling:
             if i in self.common.config["validation_dataset"]:
                 case.is_validation = True
                 logger.info(f"Case {i} set as validation case")
-                # logger.info("Case {} set as validation case".format(i))
             self.cases.append(case)
 
     def deploy_cases(self):
@@ -250,7 +238,11 @@ class Case:
 
 def run(common, args):
     sampling = Sampling(common, args)
+    print("DEBUG ****", args)
+    if args["--fromdb"]:
+        sampling.load_template()
+    else:
+        sampling.save_template()
     sampling.check_template()
-    sampling.save_template()
     sampling.generate_cases()
     sampling.deploy_cases()
