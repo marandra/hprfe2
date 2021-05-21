@@ -140,10 +140,7 @@ class Sampling:
         for c in self.cases:
             c.create_directory(self.common)
             c.create_script()
-            logger.debug(f"{c.name} {c.strain}")
-            # logger.debug("{} {}".format(c.name, c.strain))
         logger.info(f"Created {len(self.cases)} sampling cases")
-        # logger.info("Created {} sampling cases".format(len(cases)))
         create_launchers(self.common.training_path)
         logger.info("Written launch scripts")
 
@@ -162,7 +159,7 @@ class Case:
         # customize properties
         m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
         p = json.loads(m_prop.read_text())
-        print("DEBUG: READ SCALE FROM SOMEWHERE")
+        print("FIXME: scale factor hardcoded. READ IT FROM SOMEWHERE")
         scale = 0.1  # DEBUG
         vect = [f"{v} * t * (-1) * " + f"{scale}" for v in self.strain]
         p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
@@ -238,7 +235,6 @@ class Case:
 
 def run(common, args):
     sampling = Sampling(common, args)
-    print("DEBUG ****", args)
     if args["--fromdb"]:
         sampling.load_template()
     else:
