@@ -117,7 +117,8 @@ class Sampling:
             self.common.set_dataset(data, "TEMPLATE", k, replace=True)
 
     def load_template(self):
-        for k, v in TEMPL_FN:
+        self.common.training_path.mkdir(exist_ok=True)
+        for k, v in TEMPL_FN.items():
             data = self.common.get_dataset("TEMPLATE", k)
             path = self.common.training_path / v
             path.write_text(data)

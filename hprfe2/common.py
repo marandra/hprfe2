@@ -274,7 +274,7 @@ class Common:
     def get_dataset(self, group, dataset, nmodes=None, npoints=None):
         """Get dataset from database h5 file"""
         dsname = self.name_dataset(dataset, nmodes, npoints)
-        with h5py.File(self.resources_path, "r") as f:
+        with h5py.File(self.resources_path, "a") as f:
             if group in ["BASES", "CORRELATION"]:  # numpy, returns arary
                 return f[group][dsname][()]
             elif group in ["DATASET"]:  # json, returns dictionary
