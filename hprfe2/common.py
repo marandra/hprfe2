@@ -68,18 +68,6 @@ class Common:
             # "rve_data_points_range_list": [[100, 250, 50], [200, 400, 100]],
             "rve_data_points_range_list": [],
             #
-            #"energy_name": "ENERGY_FREE",
-            #"energy_elastic_modes": 21,
-            #"energy_inelastic_modes": -1,
-            #"energy_svd_cutoff": 1e-4,
-            #"strain_name": "STRAIN_FLUCTUANT",
-            #"strain_elastic_modes": 6,
-            #"strain_inelastic_modes": -1,
-            #"strain_svd_cutoff": 1e-4,
-            #"rvalue_name": "R_VALUE",
-            #"rvalue_elastic_modes": 1,
-            #"rvalue_inelastic_modes": 30,
-            #"rvalue_svd_cutoff": 1e-4,
             "reuse_existing_files": True,
             "ENERGY": {
                 "nr_mode_elastic": 21,
@@ -132,26 +120,7 @@ class Common:
         self.bases_path = self.root_path / self.config["bases_path"]
         self.datasets_path = self.root_path / self.config["datasets_path"]
         self.multiscale_path = self.root_path / self.config["multiscale_path"]
-        # self.resources_path = self.root_path / self.config["resources_path"]
         self.resources_path = self.root_path / f"{self.root_path.name}.h5"
-
-        # initialization of resources file
-        self.init_dataset()
-
-        # bases generation
-        #self.svd_cutoff = {}
-
-        #self.energy_elastic_modes = self.config["energy_elastic_modes"]
-        #self.energy_inelastic_modes = self.config["energy_inelastic_modes"]
-        #self.svd_cutoff[self.config["energy_name"]] = self.config["energy_svd_cutoff"]
-
-        #self.strain_elastic_modes = self.config["strain_elastic_modes"]
-        #self.strain_inelastic_modes = self.config["strain_inelastic_modes"]
-        #self.svd_cutoff[self.config["strain_name"]] = self.config["strain_svd_cutoff"]
-
-        #self.rvalue_elastic_modes = self.config["rvalue_elastic_modes"]
-        #self.rvalue_inelastic_modes = self.config["rvalue_inelastic_modes"]
-        #self.svd_cutoff[self.config["rvalue_name"]] = self.config["rvalue_svd_cutoff"]
 
         # points
         self.ip_subsets = [x for x in self.config["rve_data_points"]]
@@ -164,9 +133,6 @@ class Common:
             self.ip_subsets.append("ROM")
 
         self.roc_fname_pattern = self.config["roc_fname_pattern"]
-
-        # modes
-        # self.reduced_nr_modes = self.config["rve_data_modes"]
 
         self.materials_fname = self.training_path / Path(
             self.config["training_materials_fname"]
@@ -243,24 +209,19 @@ class Common:
             )
         return files[0]
 
-    def init_dataset(self):
-        # Check valid keys
-        # valid_keys = {}
-        # valid_keys["BASES"] = ["STRAIN", "ENERGY", "RVALUE", "TEST"]
-        # valid_keys["CORRELATION"] = ["STRAIN", "RVALUE"]
-        # valid_keys["DATASET"] = ["RVE"]
-        # valid_keys["TEMPLATE"] = ["MODEL", "MATERIALS", "PARAMETERS", "MAIN", "RESOURCES", "STRAINSET"]
-        # if group not in valid_keys.keys():
-        #   logger.error(f"Invalid group name {group}")
-        #   exit()
-        # if dataset not in valid_keys[group]:
-        #   logger.error(f"Invalid dataset name {dataset}")
-        #   exit()
-        with h5py.File(self.resources_path, "a") as f:
-            for group in ["BASES", "CORRELATION", "DATASET", "TEMPLATE"]:
-                if group in f.keys():
-                    continue
-                f.create_group(group)
+    #def validate_dataset(self):
+    #    Check valid keys
+    #    valid_keys = {}
+    #    valid_keys["BASES"] = ["STRAIN", "ENERGY", "RVALUE", "TEST"]
+    #    valid_keys["CORRELATION"] = ["STRAIN", "RVALUE"]
+    #    valid_keys["DATASET"] = ["RVE"]
+    #    valid_keys["TEMPLATE"] = ["MODEL", "MATERIALS", "PARAMETERS", "MAIN", "RESOURCES", "STRAINSET"]
+    #    if group not in valid_keys.keys():
+    #      logger.error(f"Invalid group name {group}")
+    #      exit()
+    #    if dataset not in valid_keys[group]:
+    #      logger.error(f"Invalid dataset name {dataset}")
+    #      exit()
 
     def name_dataset(self, dataset, nmodes=None, npoints=None):
         # Set name
@@ -288,6 +249,8 @@ class Common:
         """Create dataset in database h5 file. Only valid groups and datasets"""
         dsname = self.name_dataset(dataset, nmodes, npoints)
         with h5py.File(self.resources_path, "a") as f:
+            if group not in f.keys():
+                f.create_group(group)
             if dsname in f[group] and replace:
                 del f[group][dataset]
             f.create_dataset(f"{group}/{dsname}", data=data)
