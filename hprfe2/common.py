@@ -138,6 +138,7 @@ class Common:
             self.config["training_materials_fname"]
         )
         self.rve_fname_pattern = self.config["rve_fname_pattern"]
+        self.roc_fname_pattern = self.config["roc_fname_pattern"]
 
     def dump_config(self, fname, mode=""):
         """
@@ -258,7 +259,8 @@ class Common:
     def has_dataset(self, group, dataset, nmodes=None, npoints=None):
         dsname = self.name_dataset(dataset, nmodes, npoints)
         with h5py.File(self.resources_path, "a") as f:
-            return dsname in f[group]
+            return (group in f.keys()) and (dsname in f[group])
+            #return dsname in f[group]
 
 
 #####################################################################
