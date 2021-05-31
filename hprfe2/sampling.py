@@ -160,9 +160,8 @@ class Case:
         # customize properties
         m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
         p = json.loads(m_prop.read_text())
-        print("FIXME: scale factor hardcoded. READ IT FROM SOMEWHERE")
-        scale = 0.1  # DEBUG
-        vect = [f"{v} * t * (-1) * " + f"{scale}" for v in self.strain]
+        #print("FIXME: scale factor hardcoded. READ IT FROM SOMEWHERE")
+        vect = [f"{v}" for v in self.strain]
         p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
         # p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = self.strain
         # TODO: Fix the path, it need root_path. This is a workaround
