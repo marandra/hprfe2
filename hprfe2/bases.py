@@ -109,10 +109,11 @@ def read_local_svd(common, cases, field, cutoff_tol):
     rows = 0
     cols = 0
     for path in paths:
-        if not (
-            path / b_fname
-        ).exists():  # in case there are no inelastic snapshots, local bases are not generated and no local bases file present
+        # in case there are no inelastic snapshots, local bases are not 
+        # generated and no local bases file present
+        if not (path / b_fname).exists():
             continue
+        logger.debug(f"        {str(path / b_fname)}")
         a = numpy.load(str(path / b_fname), mmap_mode="r")
         if numpy.shape(a)[1] == 0:  # missing dataset
             continue
