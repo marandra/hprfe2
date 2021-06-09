@@ -20,12 +20,12 @@ every time the files are deployed. Template files require a file with a list of
 strain vectors (Voigt notation) for the definition of the training trajectories.
 """
 
+import json
 import logging
 import os
-import json
 from pathlib import Path
-from common import Common
 
+from common import Common
 
 logger = logging.getLogger(__name__)
 
@@ -160,10 +160,8 @@ class Case:
         # customize properties
         m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
         p = json.loads(m_prop.read_text())
-        #print("FIXME: scale factor hardcoded. READ IT FROM SOMEWHERE")
         vect = [f"{v}" for v in self.strain]
         p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
-        # p["processes"]["loads_process_list"][0]["Parameters"]["initial_strain"] = self.strain
         # TODO: Fix the path, it need root_path. This is a workaround
         p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
             common.root_path

@@ -12,12 +12,9 @@ Options:
 Writes and creates initial files structure for validation of computed bases.
 """
 
+import json
 import logging
 import os
-import json
-from pathlib import Path
-from common import Common
-
 
 logger = logging.getLogger(__name__)
 
@@ -71,10 +68,10 @@ End ModelPartData
 Begin Properties 0
 End Properties
 Begin Nodes
-    1		  0.0	   0.0	   0.0
-    2		  1.0	   0.0	   0.0
-    3  	  0.0	   1.0	   0.0
-    4		  0.0	   0.0	   1.0
+    1  0.0	   0.0	   0.0
+    2  1.0	   0.0	   0.0
+    3  0.0	   1.0	   0.0
+    4  0.0	   0.0	   1.0
 End Nodes
 
 Begin Elements SmallDisplacementElement3D4N
@@ -277,17 +274,11 @@ def create_properties_file(m_prop, c_prop, t_prop, quiet=False):
     TODO: add docstrings here
     """
     test_props = json.loads(t_prop.read_text())
-    _list = test_props["processes"]["loads_process_list"][0]["Parameters"][
-        "imposed_strain"
-    ]
-    strain_versor = [float(x.split()[0]) for x in _list]
-    ampl = float(_list[0].split()[-1])
-    # strain_versor = test_props["processes"]["loads_process_list"][0]["Parameters"][
-    #    "initial_strain"
-    # ]
-    # ampl = test_props["processes"]["loads_process_list"][0]["Parameters"][
-    #    "lookuptable_mult"
-    # ][-1]
+    _strain = test_props["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"]
+    strain_versor = [float(x) for x in _strain]
+    _funct = test_props["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain_multiplier"]
+    t = -1  # eg "0.1 * t * (-1)", where -1 is due to how imposed_strain is implemented
+    ampl = eval(_funct)
 
     model_props = json.loads(m_prop.read_text())
     # compute displacements u = E * x
