@@ -6,11 +6,10 @@ import os
 import time
 from pathlib import Path
 
+import h5py
 # import multiprocessing
 import numpy
-import h5py
 import sklearn.decomposition
-
 
 logger = logging.getLogger(__name__)
 
@@ -109,7 +108,7 @@ def read_local_svd(common, cases, field, cutoff_tol):
     rows = 0
     cols = 0
     for path in paths:
-        # in case there are no inelastic snapshots, local bases are not 
+        # in case there are no inelastic snapshots, local bases are not
         # generated and no local bases file present
         if not (path / b_fname).exists():
             continue
