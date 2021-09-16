@@ -54,7 +54,6 @@ class Common:
 
         defaults_basic = {
             # most frequently set
-            "validation_dataset": [0],
             "rve_data_points": [100, 200],
             "rve_data_points_rom": False,
             "rve_data_modes": [20, 30],
@@ -90,7 +89,8 @@ class Common:
             "training_path": "sampling",
             "training_materials_fname": "materials.json",
             "training_model_fname": "model.mdpa",
-            "case_path_pattern": "case_{}",
+            "sampling_case_path_pattern": "case_{}",
+            "validation_case_path_pattern": "validation_{}",
             "snapshots_fname": "snapshots.h5",
             # bases and roc sets files stuff
             "bases_path": "auxiliar",
@@ -158,19 +158,6 @@ class Common:
             )
         else:
             Path(fname).write_text(json.dumps({"config_data": self.config}, indent=2))
-
-    def case_name(self, c_id):
-        """
-        Returns case name with corresponging leading zeros
-        e.g. if nr_cases:100, id:00..99, nr_id: 2 -> case_01..case_99
-        """
-        # strain_set = self.parse_training_strain_set()
-        # nr_cases = len(strain_set)
-        nr_cases = 999  # TODO: hardcoded
-        len_id = len(str(nr_cases - 1))  # size of the case number string
-        case_id = "{:0{}d}".format(c_id, len_id)
-        case_name = self.config["case_path_pattern"].format(case_id)
-        return case_name
 
     def roc_fname(self, points):
         """

@@ -35,7 +35,8 @@ TEMPL_FN = {
     "MODEL": "model.mdpa",
     "MATERIALS": "materials.json",
     "PARAMETERS": "ProjectParameters.json",
-    "STRAINSET": "strain_set.dat",
+    "STRAINSET": "strain_set_sampling.dat",
+    "VALIDATIONSET": "strain_set_validation.dat",
 }
 
 
@@ -89,6 +90,7 @@ class Sampling:
     def __init__(self, common, args):
         self.common = common
         self.args = args
+        self.cases = []
 
     def check_template(self):
         # Template files must be present
@@ -97,18 +99,6 @@ class Sampling:
             if not pf.exists():
                 logger.error(f"Missing file '{pf}'. Aborting.")
                 exit()
-
-        # Number of strains is greater that validation cases
-        pf = self.common.training_path / TEMPL_FN["STRAINSET"]
-        n = len(pf.read_text().splitlines())
-        v = max(self.common.config["validation_dataset"])
-        if n < v:
-            logger.error(
-                f"Number of cases ({n}) is smaller than "
-                + f"validation case {v}. "
-                + "Aborting."
-            )
-            exit()
 
     def save_template(self):
         for k, v in TEMPL_FN.items():
@@ -123,17 +113,11 @@ class Sampling:
             path = self.common.training_path / v
             path.write_text(data)
 
-    def generate_cases(self):
-        # Generate cases
-        src = self.common.training_path / TEMPL_FN["STRAINSET"]
+    def generate_cases(self, src, is_validation=False):
         strain_set = src.read_text().splitlines()
-        self.cases = []
         for i, line in enumerate(strain_set):
             strain = [float(x) for x in line.split()]
-            case = Case(self.common, i, strain)
-            if i in self.common.config["validation_dataset"]:
-                case.is_validation = True
-                logger.info(f"Case {i} set as validation case")
+            case = Case(self.common, i, strain, is_validation)
             self.cases.append(case)
 
     def deploy_cases(self):
@@ -148,7 +132,10 @@ class Sampling:
 
 class Case:
     def __init__(self, common, i, strain_vector, is_validation=False):
-        self.name = common.case_name(i)
+        if is_validation:
+            self.name = common.config["validation_case_path_pattern"].format(str(i).zfill(3))
+        else:
+            self.name = common.config["sampling_case_path_pattern"].format(str(i).zfill(3))
         self.path = common.training_path / self.name
         self.strain = strain_vector
         self.is_validation = is_validation
@@ -238,5 +225,8 @@ def run(common, args):
     else:
         sampling.save_template()
     sampling.check_template()
-    sampling.generate_cases()
+    src = common.training_path / TEMPL_FN["STRAINSET"]
+    sampling.generate_cases(src)
+    src = common.training_path / TEMPL_FN["VALIDATIONSET"]
+    sampling.generate_cases(src, is_validation=True)
     sampling.deploy_cases()
