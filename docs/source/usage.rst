@@ -14,7 +14,7 @@ For convenience, make sure ``~/apps/hprfe2/hprfe2/`` is in the
 
 ..
    tip::
-     There is a simple tab-completion bash script located in the ``utils``
+     DEPRECATED. There is a simple tab-completion bash script located in the ``utils``
      directory that you can source for enabling tab-completion (in bash):
   
      ``echo "source $HOME/apps/hprfe2/utils/hprfe2-completions.bash" >> ~HOME/.bashrc``
@@ -47,7 +47,7 @@ Add the following line to ...::
 
 and compile Kratos.
 
-Check the installation (there should not be error messages)::
+Check the installation (there should be no error messages)::
     $ python -m KratosMultiphysics
     $ python -m KratosMultiphysics.StructuralMechanicsApplication
     $ python -m KratosMultiphysics.MultiscaleROMApplication
@@ -59,7 +59,7 @@ Required python modules are in ``requirements.txt``, in the project directory.
 Check that they are intalled, or install them if missing::
     $python -m pip install -r ~/apps/hprfe2/requirements.txt --user
 
-In case you prefer to use a virtual environment, to keep things tidy::
+In case you prefer to use a virtual environment to keep things tidy::
     $python -m venv venv-hprfe2
     $source venv-hprfe2/bin/activate
     $python -m pip install -r ~/apps/hprfe2/requirements.txt install
@@ -72,13 +72,13 @@ Usage.
 Configuration
 -------------
 
-The default configuration file of each material is ``configuration.json``.
+The default configuration file of each material is ``config.json``.
 It must be present and located at the root directory of the material.
 
 An initial configuration file with default parameters can be generated with::
 $ hprfe2 config
 
-This step generates a ``config.json`` similar to::
+This step generates a basic configuration file with default values::
   
     {
       "config_data": {
