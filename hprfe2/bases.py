@@ -276,7 +276,7 @@ def generate_local_bases(case, field, ss_fname, lb_fname, sv_fname):
 def generate_missing_local_bases(common, field, threads=1):
     logger.info("Looking for missing local bases {}".format(field))
     cases_path = common.training_path.glob(
-        common.config["case_path_pattern"].format("*")
+        common.config["sampling_case_path_pattern"].format("*")
     )
     lb_fname = common.config["local_bases_fname_pattern"].format(field)
     sv_fname = common.config["local_sv_fname_pattern"].format(field)
@@ -319,16 +319,8 @@ def run(common):
 
     logger.info("Beginning bases calculation -----------------------")
 
-    #
-    # removing cases from training dataset
-    # TODO: add TRAINING set and TEST set as members of Common
-    #
     training_set = []
-    for c in common.training_path.glob(common.config["case_path_pattern"].format("*")):
-        c_id = int(c.name.split("_")[1])
-        if c_id in common.config["validation_dataset"]:
-            logger.info("Removing case {} from training dataset".format(c.name))
-            continue
+    for c in common.training_path.glob(common.config["sampling_case_path_pattern"].format("*")):
         training_set.append(c)
 
     #
