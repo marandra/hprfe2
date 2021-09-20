@@ -407,12 +407,13 @@ def run(common):
     logger.info("Written template files")
 
     # Create case structure
-    for c in common.config["validation_dataset"]:
+    #for c in common.config["validation_dataset"]:
+    for c in common.training_path.glob(common.config["validation_case_path_pattern"].format("*")):
         for m in common.config["rve_data_modes"]:
             for p in common.ip_subsets:
                 rve_path = (
                     common.multiscale_path
-                    / common.case_name(c)
+                    / c.name
                     / "_{}m_{}ip".format(m, p)
                 ).resolve()
                 create_case_dir(rve_path, common.training_path, common.datasets_path)
