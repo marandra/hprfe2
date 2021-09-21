@@ -222,9 +222,10 @@ def run(common, args):
     sampling = Sampling(common, args)
     if args["--fromdb"]:
         sampling.load_template()
+        sampling.check_template()
     else:
+        sampling.check_template()
         sampling.save_template()
-    sampling.check_template()
     src = common.training_path / TEMPL_FN["STRAINSET"]
     sampling.generate_cases(src)
     src = common.training_path / TEMPL_FN["VALIDATIONSET"]
