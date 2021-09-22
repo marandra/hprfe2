@@ -123,8 +123,8 @@ class Sampling:
     def deploy_cases(self):
         # Deploy file structure for sampling
         for c in self.cases:
-            c.create_directory(self.common)
-            c.create_script()
+            c.deploy_case(self.common)
+            c.create_launch_script()
         logger.info(f"Created {len(self.cases)} sampling cases")
         create_launchers(self.common.training_path)
         logger.info("Written launch scripts")
@@ -140,7 +140,8 @@ class Case:
         self.strain = strain_vector
         self.is_validation = is_validation
 
-    def create_directory(self, common):
+    def deploy_case(self, common):
+
         # create dest dir
         self.path.mkdir(exist_ok=True)
 
@@ -148,20 +149,30 @@ class Case:
         m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
         p = json.loads(m_prop.read_text())
         vect = [f"{v}" for v in self.strain]
+        # "process_name": "SetInitialStateProcess"
         p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
-        # TODO: Fix the path, it need root_path. This is a workaround
-        p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
-            common.root_path
-        )
-        c_prop = (
-            self.path / "ProjectParameters.json"
-        )  # destination case properties file
-        c_prop.write_text(json.dumps(p, indent=4))
-        # customize no-output properties (for speedup calc) in validation cases
         if self.is_validation:
+            # remove process_name": "WriteSnapshots",
+            proc_0 = p["processes"]["my_processes"][0]
+            p["processes"]["my_processes"] = [proc_0]
+            # write process
+            c_prop = (self.path / "ProjectParameters.json")
+            c_prop.write_text(json.dumps(p, indent=4))
+            # write quiet process (no homogenization, snapshots, VTK)
             p["processes"]["my_processes"] = []
             p["output_processes"] = {}
             c_prop = self.path / "ProjectParameters_quiet.json"
+            c_prop.write_text(json.dumps(p, indent=4))
+        else:
+            # process_name": "WriteSnapshots",
+            # TODO: Fix the path, it need root_path. This is a workaround
+            p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
+                common.root_path
+            )
+            # remove VTK output
+            p["output_processes"] = {}
+            # write process
+            c_prop = (self.path / "ProjectParameters.json")
             c_prop.write_text(json.dumps(p, indent=4))
 
         # copy MainKratos.py
@@ -186,7 +197,7 @@ class Case:
             dest.unlink(missing_ok=True)  # Remove it before hard-linking it
             src.link_to(dest)  # Create hard link to save space (instead of copy)
 
-    def create_script(self):
+    def create_launch_script(self):
         """
         Writes temporary launch script for each case (to be run externally)
         """
