@@ -40,7 +40,7 @@ TEMPL_FN = {
 }
 
 
-def create_launchers(path):
+def create_launchers(path, ncases):
     """Create auxiliary files for running cases"""
 
     fname = "launcher_slurm.bash"
@@ -49,15 +49,15 @@ def create_launchers(path):
 #SBATCH --job-name=fiber_array
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks=1
-#SBATCH --array=00-40
+#SBATCH --array=000-""" + str(ncases - 1).zfill(3) + """\
 
-#SBATCH --partition=HM
+#SBATCH --partition=R182
 ##SBATCH --mem-per-cpu=1024
 ##SBATCH --time=03:00:00
 
 export OMP_NUM_THREADS=1
 printf -v ID "%03d" $SLURM_ARRAY_TASK_ID
-bash tmp_case_${ID}.bash
+bash tmp_launcher_${ID}.bash
 """
     (path / fname).write_text(script)
 
@@ -90,7 +90,7 @@ class Sampling:
     def __init__(self, common, args):
         self.common = common
         self.args = args
-        self.cases = []
+        self.cases = {}
 
     def check_template(self):
         # Template files must be present
@@ -115,18 +115,26 @@ class Sampling:
 
     def generate_cases(self, src, is_validation=False):
         strain_set = src.read_text().splitlines()
+        cases = []
         for i, line in enumerate(strain_set):
             strain = [float(x) for x in line.split()]
             case = Case(self.common, i, strain, is_validation)
-            self.cases.append(case)
+            cases.append(case)
+        if is_validation:
+            self.cases["validation"] = cases
+        else:
+            self.cases["cases"] = cases
 
     def deploy_cases(self):
         # Deploy file structure for sampling
-        for c in self.cases:
+        for i, c in enumerate(self.cases["cases"] + self.cases["validation"]):
             c.deploy_case(self.common)
-            c.create_launch_script()
-        logger.info(f"Created {len(self.cases)} sampling cases")
-        create_launchers(self.common.training_path)
+            c.create_launch_script(i)
+        logger.info(f"Created {len(self.cases['cases'])} sampling cases and {len(self.cases['validation'])} validation cases")
+        create_launchers(
+                        self.common.training_path,
+                        len(self.cases['cases']) + len(self.cases['validation'])
+                        )
         logger.info("Written launch scripts")
 
 
@@ -197,11 +205,11 @@ class Case:
             dest.unlink(missing_ok=True)  # Remove it before hard-linking it
             src.link_to(dest)  # Create hard link to save space (instead of copy)
 
-    def create_launch_script(self):
+    def create_launch_script(self, i):
         """
         Writes temporary launch script for each case (to be run externally)
         """
-        script_fname = "tmp_" + self.name + ".bash"
+        script_fname = f"tmp_launcher_{str(i).zfill(3)}.bash"
         script = ""
         script += "export OMP_NUM_THREADS=1\n"
         script += "export PYTHONPATH={}\n".format(os.environ["PYTHONPATH"])
