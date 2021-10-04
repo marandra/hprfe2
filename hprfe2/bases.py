@@ -317,11 +317,12 @@ def generate_missing_local_bases(common, field, threads=1):
 def run(common):
     """Creates file structure from the computation of bases"""
 
-    logger.info("Beginning bases calculation -----------------------")
-
     training_set = []
     for c in common.training_path.glob(common.config["sampling_case_path_pattern"].format("*")):
-        training_set.append(c)
+        if (c / "exclude").exists:
+            logger.debug(f"Exclude signal found in {c.name}. Excluding case from bases generation")
+        else:
+            training_set.append(c)
 
     #
     # generate missing local bases
