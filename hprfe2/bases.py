@@ -319,9 +319,6 @@ def run(common):
 
     training_set = []
     for c in common.training_path.glob(common.config["sampling_case_path_pattern"].format("*")):
-        if (c / "exclude").exists:
-            logger.debug(f"Exclude signal found in {c.name}. Excluding case from bases generation")
-        else:
             training_set.append(c)
 
     #
