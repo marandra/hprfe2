@@ -332,7 +332,8 @@ def create_case_dir(rve, training, dataset):
     # adapt and copy materials file
     src = rve.parent.parent / "macro_materials.json"
     dest = rve / "macro_materials.json"
-    rve_data_path = dataset / "rve{}.json".format(rve.name)
+    # TODO: handle the "9" (order of RVE) properly
+    rve_data_path = dataset / "rve9{}.json".format(rve.name)
     materials = json.loads(src.read_text())
     materials["properties"][0]["Material"]["constitutive_law"]["Parameters"][
         "rve_data_filename"
