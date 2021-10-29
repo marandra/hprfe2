@@ -17,7 +17,8 @@ Creates a file structure for sampling in the 'ROOT_PATH/sampling/' directory.
 Template files must be already present or use the -f option to write or overwrite
 them with the copy in the database. The template files in the database are updated
 every time the files are deployed. Template files require a file with a list of
-strain vectors (Voigt notation) for the definition of the training trajectories.
+strain vectors (Voigt notation) for the definition of the training trajectories,
+and another for the validation trajectories.
 """
 
 import json
@@ -34,9 +35,10 @@ TEMPL_FN = {
     "MAIN": "MainKratos.py",
     "MODEL": "model.mdpa",
     "MATERIALS": "materials.json",
-    "PARAMETERS": "ProjectParameters.json",
-    "STRAINSET": "strain_set_sampling.dat",
-    "VALIDATIONSET": "strain_set_validation.dat",
+    "PARAMETERS_SAMPLING": "ProjectParameters_sampling.json",
+    "PARAMETERS_VALIDATION": "ProjectParameters_validation.json",
+    "STRAINSET_SAMPLING": "strain_set_sampling.dat",
+    "STRAINSET_VALIDATION": "strain_set_validation.dat",
 }
 
 
@@ -46,7 +48,7 @@ def create_launchers(path, ncases):
     fname = "launcher_slurm.bash"
     script = """\
 #!/bin/bash
-#SBATCH --job-name=fiber_array
+#SBATCH --job-name=i
 #SBATCH --ntasks-per-core=1
 #SBATCH --ntasks=1
 #SBATCH --array=000-""" + str(ncases - 1).zfill(3) + """\
@@ -154,31 +156,33 @@ class Case:
         self.path.mkdir(exist_ok=True)
 
         # customize properties
-        m_prop = self.path.parent / "ProjectParameters.json"  # template properties file
-        p = json.loads(m_prop.read_text())
-        vect = [f"{v}" for v in self.strain]
-        # "process_name": "SetInitialStateProcess"
-        p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
         if self.is_validation:
-            # remove process_name": "WriteSnapshots",
-            proc_0 = p["processes"]["my_processes"][0]
-            p["processes"]["my_processes"] = [proc_0]
+            # validation case
+            m_prop = self.path.parent /  TEMPL_FN["PARAMETERS_VALIDATION"]
+            p = json.loads(m_prop.read_text())
+            vect = [f"{v}" for v in self.strain]
+            # "process_name": "SetInitialStateProcess"
+            p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
             # write process
             c_prop = (self.path / "ProjectParameters.json")
             c_prop.write_text(json.dumps(p, indent=4))
-            # write quiet process (no homogenization, snapshots, VTK)
+            # write quiet process (no homogenization, snapshots, VTK, ...)
             p["processes"]["my_processes"] = []
             p["output_processes"] = {}
             c_prop = self.path / "ProjectParameters_quiet.json"
             c_prop.write_text(json.dumps(p, indent=4))
         else:
+            # sampling case
+            m_prop = self.path.parent /  TEMPL_FN["PARAMETERS_SAMPLING"]
+            p = json.loads(m_prop.read_text())
+            vect = [f"{v}" for v in self.strain]
+            # "process_name": "SetInitialStateProcess"
+            p["processes"]["loads_process_list"][0]["Parameters"]["imposed_strain"] = vect
             # process_name": "WriteSnapshots",
             # TODO: Fix the path, it need root_path. This is a workaround
             p["processes"]["my_processes"][1]["Parameters"]["material_root_path"] = str(
                 common.root_path
             )
-            # remove VTK output
-            p["output_processes"] = {}
             # write process
             c_prop = (self.path / "ProjectParameters.json")
             c_prop.write_text(json.dumps(p, indent=4))
@@ -245,8 +249,8 @@ def run(common, args):
     else:
         sampling.check_template()
         sampling.save_template()
-    src = common.training_path / TEMPL_FN["STRAINSET"]
+    src = common.training_path / TEMPL_FN["STRAINSET_SAMPLING"]
     sampling.generate_cases(src)
-    src = common.training_path / TEMPL_FN["VALIDATIONSET"]
+    src = common.training_path / TEMPL_FN["STRAINSET_VALIDATION"]
     sampling.generate_cases(src, is_validation=True)
     sampling.deploy_cases()

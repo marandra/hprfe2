@@ -178,7 +178,7 @@ def write_ip_sets(common):
     )
 
     case = common.training_path
-    params = json.loads((case / "ProjectParameters.json").read_text())
+    params = json.loads((case / "ProjectParameters_sampling.json").read_text())
 
     # remove processes
     params["processes"]["my_processes"] = []
