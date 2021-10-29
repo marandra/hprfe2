@@ -54,9 +54,9 @@ class Common:
 
         defaults_basic = {
             # most frequently set
-            "rve_data_points": [100, 200],
+            "rve_data_points": [100],
             "rve_data_points_rom": False,
-            "rve_data_modes": [20, 30],
+            "rve_data_modes": [20],
             "reconstruction_pairs": [
                 [20, 100],
                 [30, 200],
