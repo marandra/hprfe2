@@ -363,12 +363,12 @@ def create_case_dir(rve, training, dataset):
     return
 
 
-def create_launch_script(case):
+def create_launch_script(batch, i, case):
     """
     Writes temporary launch script for each case (run externally)
     """
 
-    script_fname = "tmp_" + case.parent.name + case.name + ".bash"
+    script_fname = f"tmp_{batch}_{i}.bash"
     script = """\
 export OMP_NUM_THREADS=1
 export PYTHONPATH={}
@@ -388,13 +388,59 @@ rm {}
     (case.parent.parent / script_fname).write_text(script)
 
 
+def create_launchers(batch, tf, path):
+    """Create auxiliary files for running cases"""
+
+    fname = f"launcher_slurm_{batch}.bash"
+    script = """\
+#!/bin/bash
+#SBATCH --job-name=v""" + str(batch) + """\
+
+#SBATCH --ntasks-per-core=1
+#SBATCH --ntasks=1
+#SBATCH --array=0-""" + str(tf) + """\
+ 
+#SBATCH --partition=R182
+##SBATCH --mem-per-cpu=1024
+##SBATCH --time=03:00:00
+ 
+export OMP_NUM_THREADS=1
+bash tmp_""" + str(batch) + """_${SLURM_ARRAY_TASK_ID}.bash
+"""
+    (path / fname).write_text(script)
+ 
+    fname = "launcher_pueue.bash"
+    script = """\
+#!/bin/bash
+ 
+for SCRIPT in tmp_*.bash
+do
+  pueue add -- bash $SCRIPT
+  sleep 0.05
+done
+"""
+    (path / fname).write_text(script)
+ 
+    fname = "launcher.bash"
+    script = """\
+#!/bin/bash
+ 
+for SCRIPT in tmp_*.bash
+do
+  bash $SCRIPT
+  sleep 0.05
+done
+"""
+    (path / fname).write_text(script)
+ 
+ 
 def run(common):
 
     # Create base directory
-    p = common.multiscale_path
-    if not p.exists():
-        p.mkdir()
-        logger.info("Created directory {}".format(p))
+    path = common.multiscale_path
+    if not path.exists():
+        path.mkdir()
+        logger.info("Created directory {}".format(path))
 
     # Write template files to validation directory
     dest = common.multiscale_path / "macro_model.mdpa"
@@ -408,7 +454,8 @@ def run(common):
     logger.info("Written template files")
 
     # Create case structure
-    #for c in common.config["validation_dataset"]:
+    mas = 1000  # slurm's max_array_size
+    i = 0
     for c in common.training_path.glob(common.config["validation_case_path_pattern"].format("*")):
         for m in common.config["rve_data_modes"]:
             for p in common.ip_subsets:
@@ -418,5 +465,18 @@ def run(common):
                     / "_{}m_{}ip".format(m, p)
                 ).resolve()
                 create_case_dir(rve_path, common.training_path, common.datasets_path)
-                create_launch_script(rve_path)
-                logger.info("{} {}".format(rve_path.parent.name, rve_path.name))
+                batch = i // mas
+                idx = i % mas
+                create_launch_script(batch, idx, rve_path)
+                logger.info(f"batch {batch}, idx {idx}: {rve_path.parent.name} {rve_path.name}")
+                i = i + 1
+
+    # Create launchers
+    counter = i
+    for batch in range(i // mas + 1):
+        if counter // mas != 0:
+            idx = mas
+        else:
+            idx = i % mas
+        counter -= mas
+        create_launchers(batch, idx, path)
