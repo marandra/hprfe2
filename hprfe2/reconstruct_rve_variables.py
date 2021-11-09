@@ -1,5 +1,7 @@
 """Reconstruct nodal and elementary fields.
 
+Ad-hoc for isotropic damage law, and first mutliscale level.
+
 Usage:
     reconstruct.py [-h]
     reconstruct.py [-v | -q] <root> <runtime_data>
@@ -79,24 +81,18 @@ def strain_voigt_to_tensor(strain_vector):
 
 
 def analize_runtime_data(data):
-    nr_timesteps = len(data["interpolation_parameters"])
-    nr_modes = len(data["interpolation_parameters"][0])
-    # nr_points = len(data["strain_energy"][0]) - 1
-    nr_points = len(data["r_value"][0]) - 1
-    logger.info(
-        "   - detected: {} steps, {} modes, {} points".format(
-            nr_timesteps, nr_modes, nr_points
-        )
-    )
+    nr_timesteps = data["nr_timesteps"]
+    nr_modes = data["nr_modes"]
+    nr_points = data["nr_points"] - 1  # TODO Check the +1 in points
+    logger.info(f"   - detected: {nr_timesteps} steps, {nr_modes} modes, {nr_points} points")
     return nr_timesteps, nr_modes, nr_points
 
 
-# def init_kratos(aux_postproc_path):
-def init_kratos(pmaterials, pmodel):
+def init_kratos(mp_name, pmaterials, pmodel):
     """Load model and modelparts.
 
     Returns:
-        dict -- for each element, location of beginnin in the global dof vector
+        dict -- for each element, location of beginning in the global dof vector
         dict -- for each element, number of integration points
     """
     parameters_dict = {
@@ -108,16 +104,16 @@ def init_kratos(pmaterials, pmodel):
             "echo_level": 1,
         },
         "solver_settings": {
-            "model_part_name": "Microstructure",
+            "model_part_name": f"{mp_name}",
             "domain_size": 3,
             "echo_level": 1,
             "time_stepping": {},
             "solver_type": "Static",
             "model_import_settings": {
                 "input_type": "mdpa",
-                "input_filename": "{}".format(pmodel),
-            },
-            "material_import_settings": {"materials_filename": "{}".format(pmaterials)},
+                "input_filename": f"{pmodel}",
+                },
+            "material_import_settings": {"materials_filename": f"{pmaterials}"},
         },
     }
 
@@ -222,7 +218,6 @@ class Reconstruct(Common):
         r_value_correl = self.get_dataset("CORRELATION", "RVALUE", nr_modes, nr_points)
 
         logger.debug("Loading rve data")
-        # dset = f[f"RVE_DATASET/{nr_modes}m-{nr_points}ip"]
         rve_data = self.get_dataset("DATASET", "RVE", nr_modes, nr_points)
 
         logger.debug("Loading rve model")
@@ -232,10 +227,11 @@ class Reconstruct(Common):
         rve_points, rve_cells = self.get_mesh(str(p_model))
 
         logger.debug("Loading rve materials")
+        model_part_name = json.loads(self.get_dataset("TEMPLATE", "PARAMETERS_SAMPLING"))["solver_settings"]["model_part_name"]
         dset = self.get_dataset("TEMPLATE", "MATERIALS")
         p_materials = Path("materials.json")
         p_materials.write_text(dset)
-        self.model, self.modelpart = init_kratos(
+        self.model, self.modelpart = init_kratos( model_part_name,
             str(p_materials.resolve()), str(p_model.resolve().parent / p_model.stem)
         )
         p_materials.unlink()
