@@ -86,6 +86,8 @@ def reconstruct_displacement(common, n_modes):
     model_custom_path = common.bases_path / "model_custom.mdpa"
     global_index_path = common.bases_path / "auxiliar_global_index"
     materials_fname = common.training_path / "materials.json"
+    params_path = common.training_path / "ProjectParameters_sampling.json"
+    model_part_name = json.loads(params_path.read_text())["solver_settings"]["model_part_name"]
 
     params_reconstr_dict = {
         "problem_data": {
@@ -96,7 +98,7 @@ def reconstruct_displacement(common, n_modes):
             "echo_level": 1,
         },
         "solver_settings": {
-            "model_part_name": "Microstructure",
+            "model_part_name": f"{model_part_name}",
             "domain_size": 3,
             "echo_level": 1,
             "time_stepping": {"time_step": 1.0},
@@ -133,7 +135,7 @@ def reconstruct_displacement(common, n_modes):
                     "kratos_module": "KratosMultiphysics.MultiscaleROMApplication",
                     "process_name": "LoadModesToProperties",
                     "Parameters": {
-                        "model_part_name": "Microstructure.RVE",
+                        "model_part_name": f"{model_part_name}.RVE",
                         "global_index_filename": str(global_index_path),
                         "number_modes_to_load": n_modes,
                         "root_path": str(common.root_path.resolve()),
@@ -147,7 +149,7 @@ def reconstruct_displacement(common, n_modes):
                     "kratos_module": "KratosMultiphysics",
                     "process_name": "AssignVectorVariableProcess",
                     "Parameters": {
-                        "model_part_name": "Microstructure.PINNED",
+                        "model_part_name": f"{model_part_name}.PINNED",
                         "variable_name": "DISPLACEMENT",
                         "constrained": [True, True, True],
                         "value": [0.0, 0.0, 0.0],
@@ -184,17 +186,17 @@ def reconstruct_displacement(common, n_modes):
             "echo_level": 1,
         },
         "solver_settings": {
-            "model_part_name": "Microstructure",
+            "model_part_name": f"{model_part_name}",
             "domain_size": 3,
             "echo_level": 1,
             "time_stepping": {},
             "solver_type": "Static",
             "model_import_settings": {
                 "input_type": "mdpa",
-                "input_filename": "{}/model".format(common.training_path),
+                "input_filename": f"{common.training_path}/model",
             },
             "material_import_settings": {
-                "materials_filename": "{}/materials.json".format(common.training_path)
+                "materials_filename": f"{common.training_path}/materials.json"
             },
         },
     }
