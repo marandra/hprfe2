@@ -117,6 +117,9 @@ def reconstruct_displacement(common, n_modes):
                 "scaling": False,
                 "verbosity": 1,
             },
+            "builder_and_solver_settings": {
+                "use_block_builder": True,
+            },
             "line_search": False,
             "convergence_criterion": "residual_criterion",
             "residual_relative_tolerance": 1e-4,
@@ -125,7 +128,6 @@ def reconstruct_displacement(common, n_modes):
             "rotation_dofs": False,
             "compute_reactions": False,
             "move_mesh_flag": False,
-            "block_builder": True,
             "auxiliary_variables_list": [],
         },
         "processes": {
