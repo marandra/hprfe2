@@ -205,9 +205,6 @@ class Reconstruct(Common):
         logger.debug("Loading runtime data {}".format(runtime_data_path))
         data = json.loads(runtime_data_path.read_text())
         nr_timesteps, nr_modes, nr_points = analize_runtime_data(data)
-        # DEBUG
-        #nr_points=24
-        #END DEBUG
 
         logger.debug("Loading strain bases")
         strain_modes = self.get_dataset("BASES", "STRAIN")[:, :nr_modes]
