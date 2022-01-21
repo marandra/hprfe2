@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""\
+"""
 hprfe2
 Marcelo Raschi <marcelo.raschi@gmail.com>
 Utilities for HPRFE2 modal bases datasets
@@ -150,7 +150,7 @@ obtained in the sampling stage."""
     reconstruction.reconstruct_displacement_all(C)
 
     # Computes data for damage reconstruction
-    reconstruction.reconstruct_damage_all(C)
+    #reconstruction.reconstruct_damage_all(C)
 
     return
 
