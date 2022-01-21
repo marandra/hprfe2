@@ -14,6 +14,7 @@ root              Root path of the project
 runtime_data      Generated run-time data file
 """
 
+import os
 from pathlib import Path
 import logging
 import math
@@ -29,6 +30,19 @@ from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_anal
     StructuralMechanicsAnalysis,
 )
 import KratosMultiphysics.MultiscaleROMApplication
+
+
+
+def write_json(filename, data_dict):
+    with open(filename, "w") as fo:
+        json.dump(data_dict, fo, indent=2)
+    return
+
+
+def read_json(filename):
+    with open(filename) as f:
+       data_dict =  json.load(f)
+    return data_dict
 
 
 #def q(r, E, yield_stress, inf_yield_stress, H0, H1):
@@ -243,7 +257,20 @@ class Reconstruct(Common):
         #    rve_data["material_parameters"]["properties"]
         #)
         rve_interpolation_params = numpy.array(data["interpolation_parameters"])
+        rve_interpolation_params_micro = numpy.array(data["interpolation_parameters_micro"])
         rve_macro_strain = numpy.array(data["macro_strain"])
+
+        # Create MICRO runtime data files
+        micro_rip = 0
+        #meso_elem = get_local_elem(micro_rip)
+        # ad-hoc for developing
+        meso_elem = 5
+        nr_modes_micro = 20
+        nr_points_micro = 201
+        micro_fn = f"micro_runtime_data_{meso_elem}.json"
+        initialize_micro_runtime(micro_fn, nr_timesteps, nr_modes_micro, nr_points_micro)
+        mc = []  # array for interpolation parameters of RVE micros in meso
+        ms = []  # array for strain pass to RVE micros in meso
 
         ip_elem_map, nr_of_ips = self.element_map()
         filename = "rve_reconstructed.xdmf"
@@ -317,6 +344,7 @@ class Reconstruct(Common):
                 strain_global = numpy.dot(strain_modes, rve_interpolation_params[t, :])
                 strain_fluct_list = []
                 strain_list = []
+                mc.append(rve_interpolation_params_micro[t][t, :])
 
                 # Loop over elements
                 for elem_id, nr_ips in nr_of_ips.items():
@@ -356,6 +384,39 @@ class Reconstruct(Common):
                         "STRAIN": strain_list,
                         },
                 )
+                
+                # Gather MICRO c and s data
+                #mc.append(data["interpolation_parameters_micro"][t][micro_rip])
+                #ms.append(strain_fluct_list[meso_elem_id])
+
+        # Generate MICRO runtime data files
+        #micro_data = {}
+        #micro_data["interpolation_parameters"] = 
+        #generate_micro_runtime(micro_fn)
+
+# TODO: from runtime date process, unify routines
+def initialize_micro_runtime(filename, nr_timesteps, nr_modes, nr_points):
+    try:
+        os.remove(filename)
+    except OSError:
+        print(" *** OSError *** ")
+        pass
+    data = {}
+    data["nr_timesteps"] = nr_timesteps
+    data["nr_modes"] = nr_modes
+    data["nr_points"] = nr_points
+    data["interpolation_parameters"] = []
+    data["macro_strain"] = []
+    data["strain_energy"] = []
+    data["r_value"] = []
+    write_json(filename, data)
+
+def write_micro_runtime(filename, mc, ms):
+    data = read_json(filename)
+    data["interpolation_parameters"] = mc
+    data["macro_strain"] = ms
+    write_json(filename, data)
+
 
 
 #######################################
