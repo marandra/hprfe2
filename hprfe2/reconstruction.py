@@ -157,6 +157,39 @@ def reconstruct_displacement(common, n_modes):
                         "value": [0.0, 0.0, 0.0],
                         "interval": [0.0, "End"],
                     },
+                },
+                {
+                    "python_module": "assign_scalar_variable_process",
+                    "kratos_module": "KratosMultiphysics",
+                    "process_name": "AssignScalarVariableProcess",
+                    "Parameters": {
+                        "model_part_name": f"{model_part_name}.RECONSTRUCTION_CONSTRAINT_X",
+                        "variable_name": "DISPLACEMENT_X",
+                        "value": 0.0,
+                        "interval": [0.0, "End"],
+                    },
+                },
+                {
+                    "python_module": "assign_scalar_variable_process",
+                    "kratos_module": "KratosMultiphysics",
+                    "process_name": "AssignScalarVariableProcess",
+                    "Parameters": {
+                        "model_part_name": f"{model_part_name}.RECONSTRUCTION_CONSTRAINT_Y",
+                        "variable_name": "DISPLACEMENT_Y",
+                        "value": 0.0,
+                        "interval": [0.0, "End"],
+                    },
+                },
+                {
+                    "python_module": "assign_scalar_variable_process",
+                    "kratos_module": "KratosMultiphysics",
+                    "process_name": "AssignScalarVariableProcess",
+                    "Parameters": {
+                        "model_part_name": f"{model_part_name}.RECONSTRUCTION_CONSTRAINT_Z",
+                        "variable_name": "DISPLACEMENT_Z",
+                        "value": 0.0,
+                        "interval": [0.0, "End"],
+                    },
                 }
             ],
             "loads_process_list": [],
