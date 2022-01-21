@@ -30,7 +30,10 @@ def remove_exact_integral_energy(modes, weights):
     )[:2]
     # filter the reduced modified set of modes
     tolerance = np.max(modes.shape) * eps * np.max(bases_weights)
-    rank_mod_modes = sum(i > tolerance for i in bases_weights)
+    # DEBUG
+    #rank_mod_modes = sum(i > tolerance for i in bases_weights)
+    rank_mod_modes = len(bases_weights)  # DEBUG
+    # END DEBUG
     modified_modes = modified_modes[:, 0:rank_mod_modes]
     # Adding last row related with the sqrt of gauss integration weigths
     # and initializing the RHS vector for the optimization problem
