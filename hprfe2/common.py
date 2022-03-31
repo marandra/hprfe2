@@ -82,6 +82,11 @@ class Common:
                 "nr_mode_inelastic": 30,
                 "svd_cutoff": 1e-4,
             },
+            "STRESS": {
+                "nr_mode_elastic": 6,
+                "nr_mode_inelastic": 800,
+                "svd_cutoff": 1e-4,
+            },
         }
         defaults_system = {
             # training files stuff

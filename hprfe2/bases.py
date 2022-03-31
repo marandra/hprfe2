@@ -1,4 +1,4 @@
-"""
+"""q
 BASES: Functions for snapshots I/O and bases generation.
 """
 import logging
@@ -324,7 +324,7 @@ def run(common):
     #
     # generate missing local bases
     #
-    for field in ["ENERGY", "STRAIN", "RVALUE"]:
+    for field in ["ENERGY", "STRAIN", "RVALUE", "STRESS"]:
         generate_missing_local_bases(
             common,
             field,
@@ -333,7 +333,7 @@ def run(common):
     #
     # compute bases
     #
-    for field in ["ENERGY", "STRAIN", "RVALUE"]:
+    for field in ["ENERGY", "STRAIN", "RVALUE", "STRESS"]:
         if common.has_dataset("BASES", field):
             logger.info(f"Dataset BASES/{field} exits. Skipping.")
         else:

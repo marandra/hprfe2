@@ -141,7 +141,7 @@ def write_datasets(common):
             else:
                 # TODO: added "9" as a workaround while we find the rigth heuristics
                 # if common.skip_calculation(rve_fname):
-                logger.info("File {} exists. Skipping calculation".format(rve_fname))
+                logger.info("File {} exists. Skipping calculation".format(rve_fname.name))
                 continue
 
     return

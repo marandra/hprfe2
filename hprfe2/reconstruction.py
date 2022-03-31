@@ -308,9 +308,20 @@ def load_rve_data(rve_data):
     return reduced_ip_set, reduced_ip_weights
 
 
-def load_energy_modes(common, reduced_ip_set, nr_modes):
-    modes = common.get_dataset("BASES", "RVALUE")[:, :nr_modes]
-    reduced_modes = modes[reduced_ip_set, :]
+def load_modes(common, field, reduced_ip_set, reduced_ip_weights, nr_modes):
+    modes = common.get_dataset("BASES", field)[:, :nr_modes]
+    if "STRESS" in field:
+        idx = []
+        for p in reduced_ip_set:
+            idx.extend([p*6 + i for i in range(6)])
+        reduced_modes = modes[idx, :]
+        reduced_ip_weights_idx = []
+        for w in reduced_ip_weights:
+            reduced_ip_weights_idx.extend([w] * 6)
+    else:
+        reduced_modes = modes[reduced_ip_set, :]
+        reduced_ip_weights_idx = reduced_ip_weights
+
     logger.info(
         "Modes matrix {} {} - Reduced modes matrix: {} {}".format(
             numpy.shape(modes)[0],
@@ -319,7 +330,7 @@ def load_energy_modes(common, reduced_ip_set, nr_modes):
             numpy.shape(reduced_modes)[1],
         )
     )
-    return modes, reduced_modes
+    return reduced_ip_weights_idx, modes, reduced_modes
 
 
 def compute_reconstruction_system(
@@ -329,6 +340,7 @@ def compute_reconstruction_system(
     logger.debug("-- A = reduced modes.T * weights * reduced modes")
     reduced_ip_weights_diag = numpy.diag(reduced_ip_weights)
 
+    #FIXME: Tener en cuenta los indices para stress (ncomp==6)
     weighted_reduced_modes_transposed = numpy.dot(
         reduced_energy_modes.T, reduced_ip_weights_diag
     )
@@ -350,33 +362,57 @@ def compute_reconstruction_system(
     return aux_2
 
 
-def compute_system(common, rve_data, nr_modes):
+def compute_system(common, field, rve_data, nr_modes):
     """docstrings"""
     reduced_ip_set, reduced_ip_weights = load_rve_data(rve_data)
-    modes, reduced_modes = load_energy_modes(common, reduced_ip_set, nr_modes)
-    A = compute_reconstruction_system(reduced_ip_weights, modes, reduced_modes)
+    reduced_ip_weights_idxs, modes, reduced_modes = load_modes(common, field, reduced_ip_set, reduced_ip_weights, nr_modes)
+    A = compute_reconstruction_system(reduced_ip_weights_idxs, modes, reduced_modes)
     return A
 
 
-def reconstruct_damage_all(common):
-    """Computes data necessary for later reconstruction of the damage.
+def reconstruct_field_all(common, field):
+    """Computes data necessary for later reconstruction of a field ("RVALUE", "STRESS", ...)
     Skips computation if file exists and option 'reuse_existing_file' is set."""
     for pair in common.config["reconstruction_pairs"]:
         nm = pair[0]
         np = pair[1]
-        if common.has_dataset("CORRELATION", "RVALUE", nm, np):
+        if common.has_dataset("CORRELATION", field, nm, np):
             logger.info(
-                f'CORRELATION {common.name_dataset("RVALUE", nm, np)} exists. Skipping.'
+                f'CORRELATION {common.name_dataset(field, nm, np)} exists. Skipping.'
             )
             continue
         else:
-            reconstruct_damage(common, nm, np)
+            reconstruct_field(common, field, nm, np)
     return
 
 
-def reconstruct_damage(common, nm, np):
+def reconstruct_field(common, field, nm, np):
     rve_data = common.get_dataset("DATASET", "RVE", nm, np)
-    logger.info(f'Computing CORRELATION {common.name_dataset("RVALUE", nm, np)}')
-    A = compute_system(common, rve_data, nm)
-    common.set_dataset(A, "CORRELATION", "RVALUE", nm, np)
+    logger.info(f'Computing CORRELATION {common.name_dataset(field, nm, np)}')
+    A = compute_system(common, field, rve_data, nm)
+    common.set_dataset(A, "CORRELATION", field, nm, np)
     return
+
+
+#def reconstruct_damage_all(common):
+#    """Computes data necessary for later reconstruction of the damage.
+#    Skips computation if file exists and option 'reuse_existing_file' is set."""
+#    for pair in common.config["reconstruction_pairs"]:
+#        nm = pair[0]
+#        np = pair[1]
+#        if common.has_dataset("CORRELATION", "RVALUE", nm, np):
+#            logger.info(
+#                f'CORRELATION {common.name_dataset("RVALUE", nm, np)} exists. Skipping.'
+#            )
+#            continue
+#        else:
+#            reconstruct_damage(common, nm, np)
+#    return
+
+
+#def reconstruct_damage(common, nm, np):
+#    rve_data = common.get_dataset("DATASET", "RVE", nm, np)
+#    logger.info(f'Computing CORRELATION {common.name_dataset("RVALUE", nm, np)}')
+#    A = compute_system(common, rve_data, nm)
+#    common.set_dataset(A, "CORRELATION", "RVALUE", nm, np)
+#    return

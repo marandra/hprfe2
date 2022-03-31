@@ -1,5 +1,10 @@
 """Reconstruct nodal and elementary fields.
 
+Reconstructs total and fluctuant displacement (no damage nor stress),
+which makes it compatible with micros and meso.
+
+This is a workaround until we fix the reconstruction of ip fields in meso
+
 Usage:
     reconstruct.py [-h]
     reconstruct.py [-v | -q] <root> <runtime_data>
@@ -264,6 +269,7 @@ class Reconstruct(Common):
 
                 #logger.debug("Solving damage and stress")
                 #damage_list = []
+                #r = numpy.dot(r_value_correl, data["r_value"][t])
                 #r_in_elem = {}
                 #for elem_id, nr_ips in nr_of_ips.items():
                 #    r_in_elem[elem_id] = r[:nr_ips]

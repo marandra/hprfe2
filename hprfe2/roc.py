@@ -230,7 +230,7 @@ def write_ip_sets(common):
     for nr_p in common.ip_subsets:
         roc_filename = common.bases_path / common.roc_fname(nr_p)
         if common.skip_calculation(roc_filename):
-            logger.info("File {} exists. Skipping calculation".format(roc_filename))
+            logger.info("File {} exists. Skipping calculation".format(roc_filename.name))
             continue
         if "ROM" in str(nr_p):  # ROM case
             roc_list = compute_rom_weights(ip_data)

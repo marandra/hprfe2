@@ -134,7 +134,7 @@ class Reconstruct(Common):
         """Compute auxiliar vector with the index of an element in the global vector of dofs.
 
         Returns:
-            dict -- for each element, location of beginnin in the global dof vector
+            dict -- for each element, location of beginning in the global dof vector
             dict -- for each element, number of integration points
         """
         count = 0

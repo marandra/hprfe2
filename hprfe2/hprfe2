@@ -150,7 +150,10 @@ obtained in the sampling stage."""
     reconstruction.reconstruct_displacement_all(C)
 
     # Computes data for damage reconstruction
-    #reconstruction.reconstruct_damage_all(C)
+    #reconstruction.reconstruct_field_all(C, "RVALUE")
+
+    # Computes data for stress reconstruction
+    reconstruction.reconstruct_field_all(C, "STRESS")
 
     return
 
