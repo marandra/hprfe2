@@ -91,41 +91,41 @@ def analize_runtime_data(data):
     return nr_timesteps, nr_modes, nr_points
 
 
-#def init_kratos(mp_name, pmaterials, pmodel):
-#    """Load model and modelparts.
-#
-#    Returns:
-#        dict -- for each element, location of beginning in the global dof vector
-#        dict -- for each element, number of integration points
-#    """
-#    parameters_dict = {
-#        "problem_data": {
-#            "problem_name": "High_Fidelity",
-#            "parallel_type": "OpenMP",
-#            "start_time": 0.0,
-#            "end_time": 0.99,
-#            "echo_level": 1,
-#        },
-#        "solver_settings": {
-#            "model_part_name": f"{mp_name}",
-#            "domain_size": 3,
-#            "echo_level": 1,
-#            "time_stepping": {},
-#            "solver_type": "Static",
-#            "model_import_settings": {
-#                "input_type": "mdpa",
-#                "input_filename": f"{pmodel}",
-#                },
-#            "material_import_settings": {"materials_filename": f"{pmaterials}"},
-#        },
-#    }
-#
-#    model = KratosMultiphysics.Model()
-#    parameters = KratosMultiphysics.Parameters(json.dumps(parameters_dict))
-#    simulation = StructuralMechanicsAnalysis(model, parameters)
-#    simulation.Initialize()
-#    modelpart = simulation._GetSolver().GetComputingModelPart()
-#    return model, modelpart
+def init_kratos(mp_name, pmaterials, pmodel):
+    """Load model and modelparts.
+
+    Returns:
+        dict -- for each element, location of beginning in the global dof vector
+        dict -- for each element, number of integration points
+    """
+    parameters_dict = {
+        "problem_data": {
+            "problem_name": "High_Fidelity",
+            "parallel_type": "OpenMP",
+            "start_time": 0.0,
+            "end_time": 0.99,
+            "echo_level": 1,
+        },
+        "solver_settings": {
+            "model_part_name": f"{mp_name}",
+            "domain_size": 3,
+            "echo_level": 1,
+            "time_stepping": {},
+            "solver_type": "Static",
+            "model_import_settings": {
+                "input_type": "mdpa",
+                "input_filename": f"{pmodel}",
+                },
+            "material_import_settings": {"materials_filename": f"{pmaterials}"},
+        },
+    }
+
+    model = KratosMultiphysics.Model()
+    parameters = KratosMultiphysics.Parameters(json.dumps(parameters_dict))
+    simulation = StructuralMechanicsAnalysis(model, parameters)
+    simulation.Initialize()
+    modelpart = simulation._GetSolver().GetComputingModelPart()
+    return model, modelpart
 
 
 class Reconstruct(Common):
@@ -133,26 +133,26 @@ class Reconstruct(Common):
         super().__init__(**kargs)
         self.nr_voigt_comps = 6
 
-    #def element_map(self):
-    #    """Compute auxiliar vector with the index of an element in the global vector of dofs.
+    def element_map(self):
+        """Compute auxiliar vector with the index of an element in the global vector of dofs.
 
-    #    Returns:
-    #        dict -- for each element, location of beginning in the global dof vector
-    #        dict -- for each element, number of integration points
-    #    """
-    #    count = 0
-    #    elem_map = {}
-    #    nips = {}
-    #    for element in self.modelpart.Elements:
-    #        elem_map[element.Id] = count
-    #        nr_ip = len(
-    #            element.CalculateOnIntegrationPoints(
-    #                KratosMultiphysics.INTEGRATION_WEIGHT, self.modelpart.ProcessInfo
-    #            )
-    #        )
-    #        nips[element.Id] = nr_ip
-    #        count += nr_ip * self.nr_voigt_comps
-    #    return elem_map, nips
+        Returns:
+            dict -- for each element, location of beginning in the global dof vector
+            dict -- for each element, number of integration points
+        """
+        count = 0
+        elem_map = {}
+        nips = {}
+        for element in self.modelpart.Elements:
+            elem_map[element.Id] = count
+            nr_ip = len(
+                element.CalculateOnIntegrationPoints(
+                    KratosMultiphysics.INTEGRATION_WEIGHT, self.modelpart.ProcessInfo
+                )
+            )
+            nips[element.Id] = nr_ip
+            count += nr_ip * self.nr_voigt_comps
+        return elem_map, nips
 
     def get_mesh(self, rve_model):
         """Generete points and cells
@@ -217,6 +217,9 @@ class Reconstruct(Common):
         logger.debug("Loading strain correlation matrix")
         strain_correl = self.get_dataset("CORRELATION", "STRAIN", nr_modes)
 
+        logger.debug("Loading stress correlation matrix")
+        stress_correl = self.get_dataset("CORRELATION", "STRESS", nr_modes, nr_points)
+
         #logger.debug("Loading rvalue correlation matrix")
         #r_value_correl = self.get_dataset("CORRELATION", "RVALUE", nr_modes, nr_points)
 
@@ -229,16 +232,16 @@ class Reconstruct(Common):
         p_model.write_text(dset)
         rve_points, rve_cells = self.get_mesh(str(p_model))
 
-        #logger.debug("Loading rve materials")
-        #model_part_name = json.loads(self.get_dataset("TEMPLATE", "PARAMETERS_SAMPLING"))["solver_settings"]["model_part_name"]
-        #dset = self.get_dataset("TEMPLATE", "MATERIALS")
-        #p_materials = Path("materials.json")
-        #p_materials.write_text(dset)
-        #self.model, self.modelpart = init_kratos(model_part_name,
-        #    str(p_materials.resolve()), str(p_model.resolve().parent / p_model.stem)
-        #)
-        #p_materials.unlink()
-        #p_model.unlink()
+        logger.debug("Loading rve materials")
+        model_part_name = json.loads(self.get_dataset("TEMPLATE", "PARAMETERS_SAMPLING"))["solver_settings"]["model_part_name"]
+        dset = self.get_dataset("TEMPLATE", "MATERIALS")
+        p_materials = Path("materials.json")
+        p_materials.write_text(dset)
+        self.model, self.modelpart = init_kratos(model_part_name,
+            str(p_materials.resolve()), str(p_model.resolve().parent / p_model.stem)
+        )
+        p_materials.unlink()
+        p_model.unlink()
 
         # Get data from rve_data
         #material_properties, material_elem_map = self.get_material_properties(
@@ -247,7 +250,7 @@ class Reconstruct(Common):
         rve_interpolation_params = numpy.array(data["interpolation_parameters"])
         rve_macro_strain = numpy.array(data["macro_strain"])
 
-        #ip_elem_map, nr_of_ips = self.element_map()
+        ip_elem_map, nr_of_ips = self.element_map()
         filename = "rve_reconstructed.xdmf"
         meshio.write_points_cells(filename, rve_points, rve_cells)
         with meshio.xdmf.TimeSeriesWriter(filename) as writer:
@@ -267,16 +270,20 @@ class Reconstruct(Common):
                 comp = numpy.dot(strain_macro_tensor, rve_points.T)
                 total_displacement = comp.T + displacement
 
-                #logger.debug("Solving damage and stress")
+                logger.debug("Solving stress")
                 #damage_list = []
                 #r = numpy.dot(r_value_correl, data["r_value"][t])
+                stress = numpy.dot(stress_correl, numpy.reshape(data["stress"][t], (-1,1)))
+                stress_r = stress.reshape((-1, 6))
                 #r_in_elem = {}
                 #for elem_id, nr_ips in nr_of_ips.items():
                 #    r_in_elem[elem_id] = r[:nr_ips]
+                #    stress_in_elem[elem_id] = stress[:6 * nr_ips]
                 #    r = r[nr_ips:]
+                #    stress = stress[6 * nr_ips:]
                 #strain_global = numpy.dot(strain_modes, rve_interpolation_params[t, :])
-                #stress_list = []
-                #for elem_id, nr_ips in nr_of_ips.items():
+                stress_list = []
+                for elem_id, nr_ips in nr_of_ips.items():
                 #    C = material_properties[material_elem_map[elem_id]]["C"]
                 #    E = material_properties[material_elem_map[elem_id]]["E"]
                 #    nu = material_properties[material_elem_map[elem_id]]["nu"]
@@ -291,7 +298,13 @@ class Reconstruct(Common):
                 #    r0 = yield_stress / math.sqrt(E)
                 #    ip_0 = ip_elem_map[elem_id]
                 #    damage = 0
-                #    stress = [0, 0, 0, 0, 0, 0]
+                    stress_local = numpy.mean(stress_r[:nr_ips,:], axis=0)
+                    print("DEBUG:")
+                    print(numpy.shape(stress_r))
+                    print(stress_local)
+                    stress_r = stress_r[nr_ips:,:]
+                    print("DEBUG:")
+                    print(numpy.shape(stress_r))
                 #    for r in r_in_elem[elem_id]:
                 #        if r < r0:
                 #            r = r0
@@ -302,11 +315,11 @@ class Reconstruct(Common):
                 #            + strain_macro
                 #        )
                 #        stress_ip = (1 - d) * numpy.dot(C, strain)
-                #        stress = stress + stress_ip / nr_ips
+                        #stress_local = stress_local + stress_ip / nr_ips
                 #        damage += d / nr_ips
                 #        ip_0 += self.nr_voigt_comps
                 #    damage_list.append(damage)
-                #    stress_list.append(stress)
+                    stress_list.append(stress_local)
                 #element_damage = numpy.array(damage_list).reshape(
                 #    (-1, 1)
                 #)  # formatting for meshio
@@ -319,6 +332,7 @@ class Reconstruct(Common):
                         "DISPLACEMENT": total_displacement,
                     },
                     #cell_data={"DAMAGE": element_damage, "STRESS": stress_list},
+                    cell_data={"STRESS": stress_list},
                 )
 
 
