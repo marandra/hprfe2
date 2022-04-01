@@ -228,7 +228,7 @@ class Common:
         """Get dataset from database h5 file"""
         dsname = self.name_dataset(dataset, nmodes, npoints)
         with h5py.File(self.resources_path, "a") as f:
-            if group in ["BASES", "CORRELATION"]:  # numpy, returns arary
+            if group in ["BASES", "CORRELATION"]:  # numpy, returns array
                 return f[group][dsname][()]
             elif group in ["DATASET"]:  # json, returns dictionary
                 return json.loads(f[group][dsname].asstr()[()])

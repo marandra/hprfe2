@@ -1,4 +1,4 @@
-"""q
+"""
 BASES: Functions for snapshots I/O and bases generation.
 """
 import logging
