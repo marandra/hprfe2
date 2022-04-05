@@ -281,8 +281,11 @@ class Reconstruct(Common):
                 #    stress_in_elem[elem_id] = stress[:6 * nr_ips]
                 #    r = r[nr_ips:]
                 #    stress = stress[6 * nr_ips:]
-                #strain_global = numpy.dot(strain_modes, rve_interpolation_params[t, :])
+                strain_global = numpy.dot(strain_modes, rve_interpolation_params[t, :])
+                strain_r = strain_global.reshape((-1, 6))
+
                 stress_list = []
+                strain_list = []
                 for elem_id, nr_ips in nr_of_ips.items():
                 #    C = material_properties[material_elem_map[elem_id]]["C"]
                 #    E = material_properties[material_elem_map[elem_id]]["E"]
@@ -299,27 +302,22 @@ class Reconstruct(Common):
                 #    ip_0 = ip_elem_map[elem_id]
                 #    damage = 0
                     stress_local = numpy.mean(stress_r[:nr_ips,:], axis=0)
-                    print("DEBUG:")
-                    print(numpy.shape(stress_r))
-                    print(stress_local)
                     stress_r = stress_r[nr_ips:,:]
-                    print("DEBUG:")
-                    print(numpy.shape(stress_r))
+                    strain_local = numpy.mean(strain_r[:nr_ips,:], axis=0)
+                    strain_r = strain_r[nr_ips:,:]
                 #    for r in r_in_elem[elem_id]:
                 #        if r < r0:
                 #            r = r0
                 #        d = 1 - q(r, E, yield_stress, inf_yield_stress, H0, H1) / r
                 #        # stress
-                #        strain = (
-                #            strain_global[ip_0 : ip_0 + self.nr_voigt_comps]
-                #            + strain_macro
-                #        )
                 #        stress_ip = (1 - d) * numpy.dot(C, strain)
-                        #stress_local = stress_local + stress_ip / nr_ips
+                #    stress_local = stress_local + stress_ip / nr_ips
+                #    strain_local = strain_local + strain_ip / nr_ips
                 #        damage += d / nr_ips
                 #        ip_0 += self.nr_voigt_comps
                 #    damage_list.append(damage)
                     stress_list.append(stress_local)
+                    strain_list.append(strain_local)
                 #element_damage = numpy.array(damage_list).reshape(
                 #    (-1, 1)
                 #)  # formatting for meshio
@@ -331,8 +329,7 @@ class Reconstruct(Common):
                         "DISPLACEMENT_FLUCT": numpy.reshape(displacement, (-1, 3)),
                         "DISPLACEMENT": total_displacement,
                     },
-                    #cell_data={"DAMAGE": element_damage, "STRESS": stress_list},
-                    cell_data={"STRESS": stress_list},
+                    cell_data={"STRAIN": strain_list, "STRESS": stress_list},
                 )
 
 
