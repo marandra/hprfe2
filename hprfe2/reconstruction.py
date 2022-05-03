@@ -69,7 +69,7 @@ def reconstruct_displacement_all(common):
         nm = pair[0]
         if common.has_dataset("CORRELATION", "STRAIN", nm):
             logger.info(
-                f'CORRELATION {common.name_dataset("STRAIN", nm)} exists. Skipping.'
+                f'CORRELATION {common.name_dataset("STRAIN", nm, None)} exists. Skipping.'
             )
             continue
         else:

@@ -215,7 +215,7 @@ class Common:
     #      logger.error(f"Invalid dataset name {dataset}")
     #      exit()
 
-    def name_dataset(self, dataset, nmodes=None, npoints=None):
+    def name_dataset(self, dataset, nmodes, npoints):
         # Set name
         name = f"{dataset}"
         if nmodes:
@@ -234,7 +234,7 @@ class Common:
                 return json.loads(f[group][dsname].asstr()[()])
             elif group in ["TEMPLATE"]:  # template files, returns text
                 return f[group][dsname].asstr()[()]
-            else:  # default, retunrs dataset as is
+            else:  # default, returns dataset as is
                 return f[group][dsname].asstr()[()]
 
     def set_dataset(self, data, group, dataset, nmodes=None, npoints=None, replace=False):
