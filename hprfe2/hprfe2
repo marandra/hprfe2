@@ -114,13 +114,14 @@ Writes an initial configuration file with default values at root path."""
 def generate(common, args):
     """\
 Usage:
-    hprfe2 [-v] [-r PATH] generate [-f]
+    hprfe2 [-v] [-r PATH] generate [-f] [--skip-rvalue]
 
 Arguments:
     -f --force                Overides existing files
     -v --verbose              Verbose output
     -r PATH --root=PATH       Specify the root path of the project, where the
                               configuration file must be located [default: .]
+    --skip-rvalue             Skips computing correlation matrix for r_values
 
 Computes modal bases of energy, strain and damage, from snapshot of the solutions
 obtained in the sampling stage."""
@@ -150,7 +151,8 @@ obtained in the sampling stage."""
     reconstruction.reconstruct_displacement_all(C)
 
     # Computes data for damage reconstruction
-    #reconstruction.reconstruct_field_all(C, "RVALUE")
+    if not args["--skip-rvalue"]:
+        reconstruction.reconstruct_field_all(C, "RVALUE")
 
     # Computes data for stress reconstruction
     reconstruction.reconstruct_field_all(C, "STRESS")
