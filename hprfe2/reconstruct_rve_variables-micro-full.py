@@ -82,8 +82,8 @@ def strain_voigt_to_tensor(strain_vector):
 
 def analize_runtime_data(data):
     nr_timesteps = data["nr_timesteps"]
-    nr_modes = data["nr_modes"]
-    nr_points = data["nr_points"] - 1  # TODO Check the +1 in points
+    nr_modes = data["micro_nr_modes"]
+    nr_points = data["micro_nr_points"] - 1  # TODO Check the +1 in points
     logger.info(f"   - detected: {nr_timesteps} steps, {nr_modes} modes, {nr_points} points")
     return nr_timesteps, nr_modes, nr_points
 
@@ -241,8 +241,8 @@ class Reconstruct(Common):
         material_properties, material_elem_map = self.get_material_properties(
             rve_data["material_parameters"]["properties"]
         )
-        rve_interpolation_params = numpy.array(data["interpolation_parameters"])
-        rve_macro_strain = numpy.array(data["macro_strain"])
+        rve_interpolation_params = numpy.array(data["micro_interpolation_parameters"])
+        rve_macro_strain = numpy.array(data["micro_macro_strain"])
 
         ip_elem_map, nr_of_ips = self.element_map()
         filename = "rve_reconstructed.xdmf"
@@ -266,7 +266,7 @@ class Reconstruct(Common):
 
                 logger.debug("Solving damage and stress")
                 damage_list = []
-                r = numpy.dot(r_value_correl, data["r_value"][t])
+                r = numpy.dot(r_value_correl, data["micro_r_value"][t])
                 r_in_elem = {}
                 for elem_id, nr_ips in nr_of_ips.items():
                     r_in_elem[elem_id] = r[:nr_ips]
