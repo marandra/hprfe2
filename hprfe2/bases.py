@@ -317,14 +317,10 @@ def generate_missing_local_bases(common, field, threads=1):
 def run(common):
     """Creates file structure from the computation of bases"""
 
-    training_set = []
-    for c in common.training_path.glob(common.config["sampling_case_path_pattern"].format("*")):
-            training_set.append(c)
-
     #
     # generate missing local bases
     #
-    for field in ["ENERGY", "STRAIN", "RVALUE", "STRESS"]:
+    for field in ["ENERGY", "STRAIN", "STRESS", "RVALUE", "DAMAGE"]:
         generate_missing_local_bases(
             common,
             field,
@@ -333,7 +329,11 @@ def run(common):
     #
     # compute bases
     #
-    for field in ["ENERGY", "STRAIN", "RVALUE", "STRESS"]:
+    training_set = []
+    for c in common.training_path.glob(common.config["sampling_case_path_pattern"].format("*")):
+        training_set.append(c)
+
+    for field in ["ENERGY", "STRAIN", "STRESS", "RVALUE", "DAMAGE"]:
         if common.has_dataset("BASES", field):
             logger.info(f"Dataset BASES/{field} exits. Skipping.")
         else:

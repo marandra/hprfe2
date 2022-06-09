@@ -147,15 +147,12 @@ obtained in the sampling stage."""
     # workaround: move import here, to avoid printing Kratos banner
     import reconstruction
 
-    # Computes data for displacement reconstruction
+    # Computes data for fields reconstruction
     reconstruction.reconstruct_displacement_all(C)
-
-    # Computes data for damage reconstruction
-    if not args["--skip-rvalue"]:
-        reconstruction.reconstruct_field_all(C, "RVALUE")
-
-    # Computes data for stress reconstruction
     reconstruction.reconstruct_field_all(C, "STRESS")
+    reconstruction.reconstruct_field_all(C, "RVALUE")
+    if not args["--skip-rvalue"]:
+        reconstruction.reconstruct_field_all(C, "DAMAGE")
 
     return
 
@@ -174,7 +171,7 @@ if __name__ == "__main__":
 
     # Configure logger
     LOGLEVEL = logging.DEBUG
-    #LOGLEVEL = [logging.INFO, logging.INFO, logging.DEBUG][ARGS["-v"]]
+    # LOGLEVEL = [logging.INFO, logging.INFO, logging.DEBUG][ARGS["-v"]]
     # LOGLEVEL = [logging.INFO, logging.VERBOSE, logging.DEBUG][ARGS['-v']]
     logging.basicConfig(
         format="[%(asctime)s] %(message)s",
