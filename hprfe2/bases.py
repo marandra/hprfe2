@@ -320,7 +320,7 @@ def run(common):
     #
     # generate missing local bases
     #
-    for field in ["ENERGY", "STRAIN", "STRESS", "RVALUE", "DAMAGE"]:
+    for field in ["ENERGY", "STRAIN", "STRESS", "RVALUE", ]:
         generate_missing_local_bases(
             common,
             field,
@@ -333,7 +333,7 @@ def run(common):
     for c in common.training_path.glob(common.config["sampling_case_path_pattern"].format("*")):
         training_set.append(c)
 
-    for field in ["ENERGY", "STRAIN", "STRESS", "RVALUE", "DAMAGE"]:
+    for field in ["ENERGY", "STRAIN", "STRESS", "RVALUE", ]:
         if common.has_dataset("BASES", field):
             logger.info(f"Dataset BASES/{field} exits. Skipping.")
         else:

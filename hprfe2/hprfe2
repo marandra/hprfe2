@@ -151,8 +151,6 @@ obtained in the sampling stage."""
     reconstruction.reconstruct_displacement_all(C)
     reconstruction.reconstruct_field_all(C, "STRESS")
     reconstruction.reconstruct_field_all(C, "RVALUE")
-    if not args["--skip-rvalue"]:
-        reconstruction.reconstruct_field_all(C, "DAMAGE")
 
     return
 
