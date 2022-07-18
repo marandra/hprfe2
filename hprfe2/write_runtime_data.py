@@ -4,27 +4,20 @@ import os
 import json
 
 
-def write_json(filename, data_dict):
-    with open(filename, "w") as fo:
-        json.dump(data_dict, fo, indent=2)
-
-
-def read_json(filename):
+def append_to_json(filename, ts, nm, np, ic, mstrain, stress, rv):
     with open(filename) as f:
-        data_dict = json.load(f)
-    return data_dict
+        data = json.load(f)
 
+    data["nr_timesteps"] = ts
+    data["nr_modes"] = nm
+    data["nr_points"] = np
+    data["interpolation_parameters"].append(ic)
+    data["macro_strain"].append(mstrain)
+    data["stress"].append(stress)
+    data["r_value"].append(rv)
 
-def append_to_json(filename, new_data):
-    data = read_json(filename)
-    data["nr_timesteps"] = new_data["nr_timesteps"]
-    data["nr_modes"] = new_data[f"nr_modes"]
-    data["nr_points"] = new_data[f"nr_points"]
-    data["interpolation_parameters"].append(new_data["interpolation_parameters"])
-    data["macro_strain"].append(new_data["macro_strain"])
-    data["stress"].append(new_data["stress"])
-    data["r_value"].append(new_data["r_value"])
-    write_json(filename, data)
+    with open(filename, "w") as f:
+        json.dump(data, f, indent=2)
 
 
 class RuntimeData:
@@ -40,7 +33,6 @@ class RuntimeData:
         self.ip = ip
 
         self.data = {}
-        # self.data["multiscale_levels"] = self.multiscale_levels
         self.data["nr_timesteps"] = 0
         self.data["nr_modes"] = 0
         self.data["nr_points"] = 0
@@ -49,40 +41,38 @@ class RuntimeData:
         self.data["stress"] = []
         self.data["r_value"] = []
 
-        write_json(filename, self.data)
+        with open(filename, "w") as f:
+            json.dump(self.data, f, indent=2)
 
     def finalize_solution_step(self):
         for elem in self.model_part.Elements:
             if elem.Id == self.element:
 
-                ###
-                self.data["nr_timesteps"] = self.model_part.ProcessInfo[KM.STEP]
+                ### timestep
+                ts = self.model_part.ProcessInfo[KM.STEP]
 
-                ###
+                ### interpolation coef of strain modes
                 ip_data = elem.CalculateOnIntegrationPoints(
                     MSR.REDUCED_MODES_WEIGHTS_L1, self.model_part.ProcessInfo
                 )
-                data = [x for x in ip_data[self.ip]]
-                self.data["interpolation_parameters"] = data
+                ic = [x for x in ip_data[self.ip]]
 
-                ###
-                self.data["nr_modes"] = len(self.data["interpolation_parameters"])
+                ### number of modes
+                nm = len(ic)
 
-                ###
+                ### initial strain received from macro scale
                 ip_data = elem.CalculateOnIntegrationPoints(
                     KM.STRAIN, self.model_part.ProcessInfo
                 )
-                data = [x for x in ip_data[self.ip]]
-                self.data["macro_strain"] = data
+                mstrain = [x for x in ip_data[self.ip]]
 
-                ###
+                ### r_value, i.e., internal variable of CL
                 ip_data = elem.CalculateOnIntegrationPoints(
                     KM.INTERNAL_VARIABLES, self.model_part.ProcessInfo
                 )
-                data = [x for x in ip_data[self.ip]]
-                self.data["r_value"] = data
+                rv = [x for x in ip_data[self.ip]]
 
-                ###
+                ### stress
                 ip_data = elem.CalculateOnIntegrationPoints(
                     MSR.CAUCHY_STRESS_VECTOR_L1, self.model_part.ProcessInfo
                 )
@@ -97,10 +87,9 @@ class RuntimeData:
                 #    data.append(data_i)
                 ldata = [x for x in ip_data[self.ip]]
                 nc = 6  # hardoced nr of comps
-                data = [ldata[x : x + nc] for x in range(0, len(ldata), nc)]
-                self.data[f"stress"] = data
+                stress = [ldata[x : x + nc] for x in range(0, len(ldata), nc)]
 
-                ###
-                self.data["nr_points"] = len(data)
+                ### number of points
+                np = len(stress)
 
-        append_to_json(self.filename, self.data)
+        append_to_json(self.filename, ts, nm, np, ic, mstrain, stress, rv)
