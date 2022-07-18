@@ -191,47 +191,70 @@ def init_kratos(mp_name, pmaterials, pmodel):
     return model, modelpart
 
 
-def init_urt_data(model_part):
-    # Select and initialize micros to write. AD-HOC. FIXME.
-    eee = [
-        (18, 2),
-        (32, 0),
-        (41, 0),
-        (4, 0),
-        (49, 0),
-        (61, 3),
-        (55, 3),
-        (68, 5),
-        (67, 3),
-        (60, 5),
-        (48, 7),
-        (10, 3),
-        (33, 0),
-        (61, 7),
-        (63, 7),
-        (1, 2),
-        (66, 4),
-        (4, 7),
-        (3, 1),
-        (67, 5),
-        (3, 3),
-        (4, 5),
-        (51, 6),
-        (53, 7),
-        (65, 2),
+def init_urt_data():
+
+    # Begin ADHOC. FIXME
+    # Select and initialize micros to write
+    uei_pairs = [
+        (0, 18, 2),
+        (1, 32, 0),
+        (2, 41, 0),
+        (3, 4, 0),
+        (4, 49, 0),
+        (5, 61, 3),
+        (6, 55, 3),
+        (7, 68, 5),
+        (8, 67, 3),
+        (9, 60, 5),
+        (10, 48, 7),
+        (11, 10, 3),
+        (12, 33, 0),
+        (13, 61, 7),
+        (14, 63, 7),
+        (15, 1, 2),
+        (16, 66, 4),
+        (17, 4, 7),
+        (18, 3, 1),
+        (19, 67, 5),
+        (20, 3, 3),
+        (21, 4, 5),
+        (22, 51, 6),
+        (23, 53, 7),
+        (24, 65, 2),
     ]
     uelems = [3, 0, 2, 4, 5]  # elements: 4, 18, x, 41, 49, 61
-    uei_pairs = [eee[i] for i in uelems]
+    uei = [uei_pairs[i] for i in uelems]
+    # End ADHOC
 
     urt_data = []
-    for up in uei_pairs:
-        ue = up[0]
-        ui = up[1]
+    for up in uei:
+        ue = up[1]
+        ui = up[2]
         filename = f"uruntime_{ue}_{ui}.json"
-        self.urt_data.append(
-            write_runtime_data.RuntimeData(filename, model_part, ue, ui)
-        )
-    return urt_data
+        urt_data.append(write_runtime_data.RuntimeData(filename, nested_write=False))
+    return urt_data, uei
+
+
+def append_urt_data(urtdata, uei, tstep, ucoeff, strain, stress, urvalue):
+    """Appends data to the micro runtime data file.
+    eips is a list of tuples, containing the elemenet and the ip of the micro
+    e.g. [(0, 22, 0), (1, 34, 7), (2, 44, 3), ...]"""
+    for i, uei in enumerate(uelems):
+        uc = up[0]
+        ue = up[1]
+        ui = up[2]
+        d = urtdata[i]
+
+        d.data["nr_timesteps"] = ts
+        d.data["nr_modes"] = len(ucoeff[uc])
+        d.data["nr_points"] = len(stress[ue][ui, :])
+        d.data["interpolation_parameters"].append(ucoeff[uc])
+        d.data["macro_strain"].append(list(strain[ue][ui, :]))
+        d.data["stress"].append(list(stress[ue][ui, :]))
+        d.data["r_value"].append(rvalues[uc])
+
+        with open(d.filename, "w") as f:
+            json.dump(d.data, f, indent=2)
 
 
 class Reconstruct(Common):
@@ -266,52 +289,6 @@ class Reconstruct(Common):
         return elem_map, nips
 
     def reconstruc(self, runtime_data_path):
-        # def initialize_runtime_micro(m, eips, nr_timesteps, nr_modes, nr_points):
-        #    """Creates and initializes the micro runtime data file."""
-        #    D = {}
-        #    for x in m:
-        #        eip = eips[x]
-        #        e = eip[0]
-        #        i = eip[1]
-        #        d = {}
-        #        d["multiscale_levels"] = 1
-        #        d["nr_timesteps"] = nr_timesteps
-        #        d["nr_modes"] = nr_modes
-        #        d["nr_points"] = nr_points + 1
-        #        d["interpolation_parameters"] = []
-        #        d["macro_strain"] = []
-        #        d["stress"] = []
-        #        d["r_value"] = []
-        #        D[x] = d
-        #    return D
-
-        # def append_runtime_micro(D, m, eips, strain_e, stress_e, c, rvalues):
-        #    """Appends data to the micro runtime data file.
-        #    eips is a list of tuples, containing the elemenet and the ip of the micro
-        #    e.g. [(22, 0), (34, 7), (44, 3), ...]
-        #    """
-        #    for x in m:
-        #        d = D[x]
-        #        eip = eips[x]
-        #        e = eip[0]
-        #        i = eip[1]
-        #        d["interpolation_parameters"].append(c[x])  # AD_HOC FIXME
-        #        d["macro_strain"].append(list(strain_e[e][i, :]))
-        #        d["stress"].append(list(stress_e[e][i, :]))
-        #        d["r_value"].append(rvalues[x])
-        #        D[x] = d
-        #    return D
-
-        # def write_runtime_micro(
-        #    D,
-        #    m,
-        #    eips,
-        # ):
-        #    for x in m:
-        #        e = eips[x][0]
-        #        i = eips[x][1]
-        #        write_json(f"runtime_{e}_{i}.json", D[x])
-
         # Load required data meso and micro
         logger.debug(f"Loading runtime data {runtime_data_path}")
         data = json.loads(runtime_data_path.read_text())
@@ -321,19 +298,15 @@ class Reconstruct(Common):
         rve_macro_strain = np.array(data[f"macro_strain"])
         nr_modes = data[f"nr_modes"]
         nr_points = data[f"nr_points"] - 1
-        logger.debug("Done")
 
         logger.debug("Loading strain bases")
         strain_modes = self.get_dataset("BASES", "STRAIN")[:, :nr_modes]
-        logger.debug("Done")
 
         logger.debug("Loading strain correlation matrix")
         strain_correl = self.get_dataset("CORRELATION", "STRAIN", nr_modes)
-        logger.debug("Done")
 
         logger.debug("Loading stress correlation matrix")
         stress_correl = self.get_dataset("CORRELATION", "STRESS", nr_modes, nr_points)
-        logger.debug("Done")
 
         logger.debug("Loading rvalue correlation matrix")
         self.skip_damage_reconstruction = False
@@ -341,10 +314,9 @@ class Reconstruct(Common):
             r_value_correl = self.get_dataset(
                 "CORRELATION", "RVALUE", nr_modes, nr_points
             )
-            logger.debug("Done")
         except KeyError:
             logger.warning(
-                "RVALUE correlation matrix not present. Skipping DAMAGE reconstruction"
+                "  - RVALUE correlation matrix not present. Skipping DAMAGE reconstruction"
             )
             self.skip_damage_reconstruction = True
 
@@ -353,7 +325,6 @@ class Reconstruct(Common):
 
         logger.debug("Loading rve model")
         dset = self.get_dataset("TEMPLATE", "MODEL")
-        logger.debug("Done")
 
         p_model = Path("model.mdpa")
         p_model.write_text(dset)
@@ -374,7 +345,6 @@ class Reconstruct(Common):
         p_materials.unlink()
         p_model.unlink()
 
-        # Get data from rve_data
         if not self.skip_damage_reconstruction:
             material_properties, material_elem_map = get_material_properties(
                 self.model, rve_data["material_parameters"]["properties"]
@@ -382,7 +352,13 @@ class Reconstruct(Common):
 
         ip_elem_map, nr_of_ips = self.element_map()
 
-        if self.reconstruct_micro:
+        # Generate micro runtime data if required info present in meso runtime data
+        if (
+            "u_strain_coeffs" in data.keys()
+            or "u_stress" in data.keys()
+            or "u_r_value" in data.keys()
+        ):
+            self.reconstruct_micro = True
             init_urt_data()
 
         # Open XDMF file for writing field data for each timestep
@@ -454,37 +430,18 @@ class Reconstruct(Common):
                 if self.reconstruct_micro:
                     uc = data["u_interpolation_parameters"][t]
                     ur = data["u_r_value"][t]
-                    # mD = append_runtime_micro(
-                    #    mD, micro_elems, eips, strain_e, stress_e, mc, mr
-                    # )
                     append_urt_data(t, uc, strain_e, stress_e, ur)
 
                 # Append XDMF Paraview data
-                if self.skip_damage_reconstruction:
-                    writer.write_data(
-                        t,
-                        point_data={
-                            "DISPLACEMENT_FLUCT": np.reshape(displacement, (-1, 3)),
-                            "DISPLACEMENT": total_displacement,
-                        },
-                        cell_data={
-                            "STRAIN": strain_h,
-                            "STRESS": stress_h,
-                        },
-                    )
-                else:
-                    writer.write_data(
-                        t,
-                        point_data={
-                            "DISPLACEMENT_FLUCT": np.reshape(displacement, (-1, 3)),
-                            "DISPLACEMENT": total_displacement,
-                        },
-                        cell_data={
-                            "STRAIN": strain_h,
-                            "STRESS": stress_h,
-                            "DAMAGE": element_damage,
-                        },
-                    )
+                point_data = {}
+                cell_data = {}
+                point_data["DISPLACEMENT_FLUCT"] = np.reshape(displacement, (-1, 3))
+                point_data["DISPLACEMENT"] = total_displacement
+                cell_data["STRAIN"] = strain_h
+                cell_data["STRESS"] = stress_h
+                if not self.skip_damage_reconstruction:
+                    cell_data["DAMAGE"] = element_damage
+                writer.write_data(t, point_data=point_data, cell_data=cell_data)
 
     def compute_field_stress(self, field, stress_correl, data, t, nr_of_ips):
         logger.debug(f"Computing {field} field")
