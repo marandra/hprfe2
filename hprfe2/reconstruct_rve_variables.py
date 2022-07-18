@@ -23,22 +23,32 @@ from pathlib import Path
 import logging
 import math
 import json
-import numpy
-import h5py
+import numpy as np
+
+# import h5py
 from docopt import docopt
+
 import meshio
 from common import Common
-import KratosMultiphysics
-import KratosMultiphysics.StructuralMechanicsApplication
+import write_runtime_data
+import KratosMultiphysics as KM
+
+# import KratosMultiphysics.StructuralMechanicsApplication as SMA
 from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_analysis import (
     StructuralMechanicsAnalysis,
 )
-import KratosMultiphysics.MultiscaleROMApplication
 
-numpy.set_printoptions(
+# import KratosMultiphysics.MultiscaleROMApplication
+
+np.set_printoptions(
     linewidth=120,
     suppress=True,
 )
+
+
+##
+## Functions for DAMAGE reconstruction
+##
 
 
 def q(r, E, yield_stress, inf_yield_stress, H0, H1):
@@ -59,7 +69,7 @@ def compute_elastic_tensor(E, NU):
     c_2 = c_1 * (1 - NU)
     c_3 = c_1 * NU
     c_4 = c_1 * 0.5 * (1 - 2 * NU)
-    elastic = numpy.zeros((6, 6))
+    elastic = np.zeros((6, 6))
     elastic[0, 0] = c_2
     elastic[0, 1] = c_3
     elastic[0, 2] = c_3
@@ -75,6 +85,11 @@ def compute_elastic_tensor(E, NU):
     return elastic
 
 
+##
+## End functions for DAMAGE reconstruction
+##
+
+
 def strain_voigt_to_tensor(strain_vector):
     s_xx = strain_vector[0]
     s_yy = strain_vector[1]
@@ -82,7 +97,7 @@ def strain_voigt_to_tensor(strain_vector):
     s_xy = 0.5 * strain_vector[3]
     s_yz = 0.5 * strain_vector[4]
     s_xz = 0.5 * strain_vector[5]
-    strain_tensor = numpy.array(
+    strain_tensor = np.array(
         [[s_xx, s_xy, s_xz], [s_xy, s_yy, s_yz], [s_yz, s_yz, s_zz]]
     )
     return strain_tensor
@@ -94,13 +109,13 @@ def write_json(filename, data_dict):
 
 
 def get_runtime_data(data):
-    """level: "meso" or "micro"
+    """
     data: dict from runtime json
     """
     nl = data["multiscale_levels"]
     nt = data["nr_timesteps"]
-    nm = data[f"{level}_nr_modes"]
-    np = data[f"{level}_nr_points"] - 1  # TODO Check the +1 in points
+    nm = data[f"nr_modes"]
+    np = data[f"nr_points"] - 1  # TODO Check the +1 in points
     logger.info(f"   - detected: {nt} steps, {nm} modes, {np} points")
     return nl, nt, nm, np
 
@@ -134,8 +149,8 @@ def init_kratos(mp_name, pmaterials, pmodel):
         },
     }
 
-    model = KratosMultiphysics.Model()
-    parameters = KratosMultiphysics.Parameters(json.dumps(parameters_dict))
+    model = KM.Model()
+    parameters = KM.Parameters(json.dumps(parameters_dict))
     simulation = StructuralMechanicsAnalysis(model, parameters)
     simulation.Initialize()
     modelpart = simulation._GetSolver().GetComputingModelPart()
@@ -194,6 +209,7 @@ class Reconstruct(Common):
         for m in props:
             material_name = m["model_part_name"]
             logger.debug("   - loading material {}".format(material_name))
+            logger.debug(m["Material"]["Variables"])
             material_properties[material_name] = {}
             E = m["Material"]["Variables"]["YOUNG_MODULUS"]
             nu = m["Material"]["Variables"]["POISSON_RATIO"]
@@ -267,16 +283,12 @@ class Reconstruct(Common):
                 write_json(f"micro_runtime_{e}_{i}.json", D[x])
 
         # Load required data meso and micro
-        logger.debug("Loading runtime data {}".format(runtime_data_path))
+        logger.debug(f"Loading runtime data {runtime_data_path}")
         data = json.loads(runtime_data_path.read_text())
-        levels = data["multiscale_levels"]
+        levels = data[
+            "multiscale_levels"
+        ]  # NOTA: Usar esto solamente para escribir micro_runtime_... en archivos separados
         nr_timesteps = data["nr_timesteps"]
-
-        if levels == 1:
-            level = "micro"
-        else:
-            level = "meso"
-            sublevel = "micro"
 
         rve_interp_params = numpy.array(data[f"{level}_interpolation_parameters"])
         rve_macro_strain = numpy.array(data[f"{level}_macro_strain"])
