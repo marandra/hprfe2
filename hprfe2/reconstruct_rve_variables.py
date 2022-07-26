@@ -294,7 +294,7 @@ class Reconstruct(Common):
         data = json.loads(runtime_data_path.read_text())
         nr_timesteps = data["nr_timesteps"]
 
-        rve_interp_params = np.array(data[f"interpolation_parameters"])
+        rve_interp_params = np.array(data[f"strain_coeffs"])
         rve_macro_strain = np.array(data[f"macro_strain"])
         nr_modes = data[f"nr_modes"]
         nr_points = data[f"nr_points"] - 1
@@ -352,12 +352,8 @@ class Reconstruct(Common):
 
         ip_elem_map, nr_of_ips = self.element_map()
 
-        # Generate micro runtime data if required info present in meso runtime data
-        if (
-            "u_strain_coeffs" in data.keys()
-            or "u_stress" in data.keys()
-            or "u_r_value" in data.keys()
-        ):
+        # Generate micro runtime data if required data present
+        if data["u_nr_points"] and data["u_nr_modes"] > 0:
             self.reconstruct_micro = True
             init_urt_data()
 
