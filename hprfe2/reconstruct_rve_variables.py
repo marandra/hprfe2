@@ -145,12 +145,12 @@ def get_mesh(rve_model):
     mesh = meshio.read(rve_model)
     rve_cells = []
     for cell_block in mesh.cells:
-        element_type = cell_block[0]
+        element_type = cell_block.type
         # if "hexa" in element_type or "wedge" in element_type:
         if "line8" in element_type:
-            rve_cells.append(meshio.CellBlock("hexahedron", cell_block[1]))
+            rve_cells.append(meshio.CellBlock("hexahedron", cell_block.data))
         if "line6" in element_type:
-            rve_cells.append(meshio.CellBlock("wedge", cell_block[1]))
+            rve_cells.append(meshio.CellBlock("wedge", cell_block.data))
     return mesh.points, rve_cells
 
 
