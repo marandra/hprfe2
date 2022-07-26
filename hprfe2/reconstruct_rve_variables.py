@@ -433,8 +433,29 @@ class Reconstruct(Common):
                 cell_data = {}
                 point_data["DISPLACEMENT_FLUCT"] = np.reshape(displacement, (-1, 3))
                 point_data["DISPLACEMENT"] = total_displacement
-                cell_data["STRAIN"] = strain_h
-                cell_data["STRESS"] = stress_h
+                workaround_flag = False  # FIXME. Workaround for paraview 5.10, ok for <=5.9
+                if not workaround_flag:
+                    cell_data["STRAIN"] = strain_h
+                    cell_data["STRESS"] = stress_h
+                else:
+                    cell_data["STRAIN_MAGNITUDE"] = np.linalg.norm(
+                        strain_h, axis=1
+                    ).reshape((-1, 1))
+                    cell_data["STRAIN_XX"] = strain_h[:, 0].reshape((-1, 1))
+                    cell_data["STRAIN_YY"] = strain_h[:, 1].reshape((-1, 1))
+                    cell_data["STRAIN_ZZ"] = strain_h[:, 2].reshape((-1, 1))
+                    cell_data["STRAIN_XY"] = strain_h[:, 3].reshape((-1, 1))
+                    cell_data["STRAIN_YZ"] = strain_h[:, 4].reshape((-1, 1))
+                    cell_data["STRAIN_XZ"] = strain_h[:, 5].reshape((-1, 1))
+                    cell_data["STRESS_MAGNITUDE"] = np.linalg.norm(
+                        stress_h, axis=1
+                    ).reshape((-1, 1))
+                    cell_data["STRESS_XX"] = stress_h[:, 0].reshape((-1, 1))
+                    cell_data["STRESS_YY"] = stress_h[:, 1].reshape((-1, 1))
+                    cell_data["STRESS_ZZ"] = stress_h[:, 2].reshape((-1, 1))
+                    cell_data["STRESS_XY"] = stress_h[:, 3].reshape((-1, 1))
+                    cell_data["STRESS_YZ"] = stress_h[:, 4].reshape((-1, 1))
+                    cell_data["STRESS_XZ"] = stress_h[:, 5].reshape((-1, 1))
                 if not self.skip_damage_reconstruction:
                     cell_data["DAMAGE"] = element_damage
                 writer.write_data(t, point_data=point_data, cell_data=cell_data)
@@ -452,7 +473,7 @@ class Reconstruct(Common):
             stress_e[elem_id] = stress_r[idx : idx + nr_ips, :]
             stress_h.append(np.mean(stress_e[elem_id], axis=0))
             idx += nr_ips
-        return stress_e, stress_h
+        return stress_e, np.array(stress_h).reshape(-1, 6)
 
     def compute_field_strain(
         self, field, strain_modes, rve_interpolation_params, t, nr_of_ips
@@ -467,7 +488,7 @@ class Reconstruct(Common):
             strain_e[elem_id] = strain_r[idx : idx + nr_ips, :]
             strain_h.append(np.mean(strain_e[elem_id], axis=0))
             idx += nr_ips
-        return strain_e, strain_h
+        return strain_e, np.array(strain_h).reshape((-1, 6))
 
 
 #######################################
