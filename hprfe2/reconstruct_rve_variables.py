@@ -25,20 +25,16 @@ import math
 import json
 import numpy as np
 
-# import h5py
 from docopt import docopt
-
 import meshio
-from common import Common
-import write_runtime_data
-import KratosMultiphysics as KM
 
-# import KratosMultiphysics.StructuralMechanicsApplication as SMA
+import KratosMultiphysics as KM
 from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_analysis import (
     StructuralMechanicsAnalysis,
 )
 
-# import KratosMultiphysics.MultiscaleROMApplication
+from common import Common
+import write_runtime_data
 
 np.set_printoptions(
     linewidth=120,
@@ -49,7 +45,6 @@ np.set_printoptions(
 ##
 ## Functions for DAMAGE reconstruction
 ##
-
 
 def q(r, E, yield_stress, inf_yield_stress, H0, H1):
     r0 = yield_stress / math.sqrt(E)
@@ -231,27 +226,41 @@ def init_urt_data():
         ue = up[1]
         ui = up[2]
         filename = f"uruntime_{ue}_{ui}.json"
-        urt_data.append(write_runtime_data.RuntimeData(filename, nested_write=False))
+        urt_data.append(write_runtime_data.RuntimeData(filename))
     return urt_data, uei
 
 
-def append_urt_data(urtdata, uei, tstep, ucoeff, strain, stress, urvalue):
+#def append_urt_data(urtdata, mei, tstep, nm, np, ucoeff, strain, stress, urvalue):
+def append_urt_data(urtdata, mei, tstep, ucoeff, strain, stress, urvalue):
     """Appends data to the micro runtime data file.
-    eips is a list of tuples, containing the elemenet and the ip of the micro
-    e.g. [(0, 22, 0), (1, 34, 7), (2, 44, 3), ...]"""
-    for i, uei in enumerate(uelems):
+
+    urtdata: list of objects for writing u data
+    mei: list of tuples (id, element, ip) of the meso, e.g.
+        mei_pairs = [
+            (3, 4, 0),
+            (0, 18, 2),
+            (2, 41, 0),
+            (4, 49, 0),
+            (5, 61, 3),
+            ... 
+        ]
+    tstep: current time step
+    """
+    for i, up in enumerate(mei):
         uc = up[0]
         ue = up[1]
         ui = up[2]
         d = urtdata[i]
 
-        d.data["nr_timesteps"] = ts
-        d.data["nr_modes"] = len(ucoeff[uc])
-        d.data["nr_points"] = len(stress[ue][ui, :])
-        d.data["interpolation_parameters"].append(ucoeff[uc])
+        d.data["nr_timesteps"] = tstep + 1
+        #d.data["nr_modes"] = nm
+        #d.data["nr_points"] = np
+        d.data["strain_coeffs"].append(ucoeff[uc])
+        # solo para el desplazamiento total
         d.data["macro_strain"].append(list(strain[ue][ui, :]))
         d.data["stress"].append(list(stress[ue][ui, :]))
-        d.data["r_value"].append(rvalues[uc])
+        # not that easy, rvalue es un solo vector laaaargo
+        #d.data["r_value"].append(urvalue[uc])
 
         with open(d.filename, "w") as f:
             json.dump(d.data, f, indent=2)
@@ -355,7 +364,7 @@ class Reconstruct(Common):
         # Generate micro runtime data if required data present
         if data["u_nr_points"] and data["u_nr_modes"] > 0:
             self.reconstruct_micro = True
-            init_urt_data()
+            urtd, uei = init_urt_data()
 
         # Open XDMF file for writing field data for each timestep
         filename = "rve_reconstructed.xdmf"
@@ -424,9 +433,12 @@ class Reconstruct(Common):
                 logger.debug("Writing timestep data")
 
                 if self.reconstruct_micro:
-                    uc = data["u_interpolation_parameters"][t]
-                    ur = data["u_r_value"][t]
-                    append_urt_data(t, uc, strain_e, stress_e, ur)
+                    #um = data["u_nr_modes"]
+                    #up = data["u_nr_points"]
+                    usmc = data["u_strain_coeffs"][t]
+                    urval = data["u_r_value"][t]
+                    #append_urt_data(urtd, uei, t, um, up, uc, strain_e, stress_e, ur)
+                    append_urt_data(urtd, uei, t, usmc, strain_e, stress_e, urval)
 
                 # Append XDMF Paraview data
                 point_data = {}
