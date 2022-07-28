@@ -5,6 +5,7 @@ import KratosMultiphysics.MultiscaleROMApplication as MSR
 
 
 def get_udata(model_part, element, ip):
+def get_data_l2(model_part, element, ip):
     for elem in model_part.Elements:
         if elem.Id == element:
 
@@ -57,6 +58,7 @@ def get_udata(model_part, element, ip):
 
 
 def get_data(model_part, element, ip):
+def get_data_l1(model_part, element, ip):
     for elem in model_part.Elements:
         if elem.Id == element:
 
@@ -104,61 +106,99 @@ def get_data(model_part, element, ip):
             ### number of points
             np = len(stress)
 
-    return ts, nm, np, ic, mstrain, stress, rv
+def append_l1(data, nm, np, smc, mstrain, stress, rv):
+    """read from and write to file at each timestep,
+    to not loose data in case run is cancelled"""
+
+    data["nr_modes"] = nm
+    data["nr_points"] = np
+    data["strain_coeffs"].append(smc)
+    data["macro_strain"].append(mstrain)
+    data["stress"].append(stress)
+    data["r_value"].append(rv)
+    return data
 
 
-class RuntimeData:
-    def __init__(self, filename):
-        try:
-            os.remove(filename)
-        except OSError:
-            pass
+def append_l2(data, nm, np, smc, rvalue, stress):
+    """read from and write to file at each timestep,
+    to not loose data in case run is cancelled"""
 
-        self.filename = filename
-        self.data = {}
-        self.data["nr_timesteps"] = -1
-        self.data["nr_modes"] = -1
-        self.data["nr_points"] = -1
-        self.data["strain_coeffs"] = []
-        self.data["macro_strain"] = []
-        self.data["stress"] = []
-        self.data["r_value"] = []
+    data["u_nr_modes"] = len(smc[0])
+    data["u_nr_points"] = len(smc[0])
+    data["u_strain_coeffs"].append(smc)
+    data["u_r_value"].append(rvalue)
+    data["u_stress"].append(stress)
+    return data
 
-        self.data["u_nr_modes"] = -1
-        self.data["u_nr_points"] = -1
-        self.data["u_strain_coeffs"] = []
-        self.data["u_r_value"] = []
-        self.data["u_stress"] = []
 
-        with open(filename, "w") as f:
-            json.dump(self.data, f, indent=2)
 
-    def write(self, ts, nm, np, ic, mstrain, stress, rv):
+def write(filename, modelpart, e, i, nested):
 
-        with open(self.filename) as f:
-            data = json.load(f)
+    # read
+    with open(filename) as f:
+        data = json.load(f)
 
-        data["nr_timesteps"] = ts
-        data["nr_modes"] = nm
-        data["nr_points"] = np
-        data["strain_coeffs"].append(ic)
-        data["macro_strain"].append(mstrain)
-        data["stress"].append(stress)
-        data["r_value"].append(rv)
+    step = modelpart.ProcessInfo[KM.STEP]
 
-        with open(self.filename, "w") as f:
-            json.dump(data, f, indent=2)
+    # init
+    if step == 1:
+        data = init_l1(data, modelpart, e, i)
+        if nested:
+            data = init_l2(data, modelpart, e, i)
 
-    def write_u(self, nm, np, smc, rvalue, stress):
+    # update
+    data["nr_timesteps"] = step
+    data = append_l1(data, *get_data_l1(modelpart, e, i))
+    if nested:
+        data = append_l2(data, *get_data_l2(modelpart, e, i))
 
-        with open(self.filename) as f:
-            data = json.load(f)
+    # write
+    with open(filename, "w") as f:
+        json.dump(data, f, indent=2)
 
-        data["u_nr_modes"] = nm
-        data["u_nr_points"] = np
-        data["u_strain_coeffs"].append(smc)
-        data["u_r_value"].append(rvalue)
-        data["u_stress"].append(stress)
 
-        with open(self.filename, "w") as f:
-            json.dump(data, f, indent=2)
+def init_l1(data, mp, e, ip):
+
+    for elem in mp.Elements:
+        if elem.Id == e:
+            smc = elem.CalculateOnIntegrationPoints(
+                    MSR.REDUCED_MODES_WEIGHTS_L1,
+                    mp.ProcessInfo
+                    )[ip]
+            nmodes = len(smc)
+        break
+
+    data["nr_modes"] = nmodes
+    data["nr_points"] = -1
+
+    #data["strain_coeffs"] = []
+    #data["macro_strain"] = []
+    #data["stress"] = []
+    #data["r_value"] = []
+    
+    return data
+
+
+def init_l2(data, modelpart, e, i):
+
+    data["u_nr_modes"] = -1
+    data["u_nr_points"] = -1
+
+    #data["u_strain_coeffs"] = []
+    #data["u_r_value"] = []
+    #data["u_stress"] = []
+    
+    return data
+
+
+def init(filename, modelpart, e, i, nested):
+
+    try:
+        os.remove(filename)
+    except OSError:
+        pass
+
+    data = {}
+
+    with open(filename, "w") as f:
+        json.dump(data, f, indent=2)
