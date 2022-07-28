@@ -1,10 +1,10 @@
 import os
 import json
+import numpy
 import KratosMultiphysics as KM
 import KratosMultiphysics.MultiscaleROMApplication as MSR
 
 
-def get_udata(model_part, element, ip):
 def get_data_l2(model_part, element, ip):
     for elem in model_part.Elements:
         if elem.Id == element:
@@ -23,47 +23,41 @@ def get_data_l2(model_part, element, ip):
                     data_i.append(x[r, c])
                 data.append(data_i)
             smc = data
-            ### number of points
-            np = len(smc)
+
             ### number of modes
             nm = len(smc[0])
 
+            ### stress
+            data = numpy.array(
+                elem.CalculateOnIntegrationPoints(
+                    MSR.CAUCHY_STRESS_VECTOR_L2, model_part.ProcessInfo
+                )[ip]
+            )
+            data = data.reshape((numpy.shape(data)[0], -1, 6))
+            #  convert numpy 3D array to nested list
+            stress = [[list(j) for j in i] for i in data]
+
             ## r_value, i.e., internal variable of CL
-            ## ther eno L2, because RL returns all iv in one vector
+            ## there is no L2, because RL returns all iv in one vector
             ip_data = elem.CalculateOnIntegrationPoints(
                 MSR.INTERNAL_VARIABLES_L1, model_part.ProcessInfo
             )
             data = [x for x in ip_data[ip]]
             rvalue = data
 
-            ### stress
-            ip_data = elem.CalculateOnIntegrationPoints(
-                MSR.CAUCHY_STRESS_VECTOR_L2, model_part.ProcessInfo
-            )
-            x = ip_data[ip]
-            nr = x.Size1()
-            nc = x.Size2()
-            data = []
-            for r in range(nr):
-               data_i = []
-               for c in range(nc):
-                  data_i.append(x[r, c])
-               data.append(data_i)
-            #ldata = [x for x in ip_data[ip]]
-            #nc = 6  # hardoced nr of comps
-            #stress = [ldata[x : x + nc] for x in range(0, len(ldata), nc)]
-            stress = data
+            ### number of points
+            np = len(stress[0])
 
+    #       OK OK  OK no OK
     return nm, np, smc, rvalue, stress
 
 
-def get_data(model_part, element, ip):
 def get_data_l1(model_part, element, ip):
     for elem in model_part.Elements:
         if elem.Id == element:
 
             ### timestep
-            ts = model_part.ProcessInfo[KM.STEP]
+            #ts = model_part.ProcessInfo[KM.STEP]
 
             ### strain modes coefficients
             ip_data = elem.CalculateOnIntegrationPoints(
@@ -86,25 +80,21 @@ def get_data_l1(model_part, element, ip):
             )
             rv = [x for x in ip_data[ip]]
 
-            ### stress
+            ### stress. L1: a vector of size npoints * ncomps
             ip_data = elem.CalculateOnIntegrationPoints(
                 MSR.CAUCHY_STRESS_VECTOR_L1, model_part.ProcessInfo
             )
-            # x = ip_data[ip]
-            # nr = x.Size1()
-            # nc = x.Size2()
-            # data = []
-            # for r in range(nr):
-            #    data_i = []
-            #    for c in range(nc):
-            #        data_i.append(x[r, c])
-            #    data.append(data_i)
             ldata = [x for x in ip_data[ip]]
             nc = 6  # hardoced nr of comps
+            # equivalent to np.resize(-1, nc) but for lists
             stress = [ldata[x : x + nc] for x in range(0, len(ldata), nc)]
 
             ### number of points
             np = len(stress)
+        break
+
+    return nm, np, ic, mstrain, stress, rv
+
 
 def append_l1(data, nm, np, smc, mstrain, stress, rv):
     """read from and write to file at each timestep,
