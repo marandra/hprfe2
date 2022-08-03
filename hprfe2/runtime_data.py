@@ -99,6 +99,7 @@ def _get_data_from_reconstruction_l1(rtdata, step, idx):
     cstrain = rtdata[UCSTRAIN][step - 1][idx]
     stress = rtdata[USTRESS][step - 1][idx]
     rvalue = rtdata[RVALUE][step - 1][idx]
+    rvalue = [[x] for x in rvalue]  # each point has its own list
     return cstrain, stress, rvalue
 
 
