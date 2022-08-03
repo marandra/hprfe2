@@ -44,21 +44,6 @@ np.set_printoptions(
 #
 # Functions for DAMAGE reconstruction
 #
-
-
-def q(r, E, yield_stress, inf_yield_stress, H0, H1):
-    r0 = yield_stress / math.sqrt(E)
-    q0 = r0  # strain_variable_init
-    q1 = inf_yield_stress / math.sqrt(E)  # stress_variable_inf
-    r1 = r0 + (q1 - q0) / H0
-    if r < r0:
-        return q0
-    if r >= r0 and r < r1:
-        return q0 + H0 * (r - r0)
-    # Case r >= r1:
-    return q1 + H1 * (r - r1)
-
-
 def compute_elastic_tensor(E, NU):
     c_1 = E / ((1 + NU) * (1 - 2 * NU))
     c_2 = c_1 * (1 - NU)
@@ -81,37 +66,74 @@ def compute_elastic_tensor(E, NU):
 
 
 def get_material_properties(model, props):
-    material_properties = {}
-    material_element_list = {}
+    material = {}
+    elem_list = {}
     for m in props:
-        material_name = m["model_part_name"]
-        logger.debug("   - loading material {}".format(material_name))
+        name = m["model_part_name"]
+        logger.debug("   - loading material {}".format(name))
         logger.debug(m["Material"]["Variables"])
-        material_properties[material_name] = {}
-        E = m["Material"]["Variables"]["YOUNG_MODULUS"]
+        material[name] = {}
+        ym = m["Material"]["Variables"]["YOUNG_MODULUS"]
         nu = m["Material"]["Variables"]["POISSON_RATIO"]
-        yield_stress = m["Material"]["Variables"]["STRESS_LIMITS"][0]
-        inf_yield_stress = m["Material"]["Variables"]["STRESS_LIMITS"][1]
-        H0 = m["Material"]["Variables"]["HARDENING_PARAMETERS"][0]
-        H1 = m["Material"]["Variables"]["HARDENING_PARAMETERS"][1]
-        material_properties[material_name]["E"] = E
-        material_properties[material_name]["nu"] = nu
-        material_properties[material_name]["yield_stress"] = yield_stress
-        material_properties[material_name]["inf_yield_stress"] = inf_yield_stress
-        material_properties[material_name]["H0"] = H0
-        material_properties[material_name]["H1"] = H1
-        material_properties[material_name]["C"] = compute_elastic_tensor(E, nu)
+        y = m["Material"]["Variables"]["STRESS_LIMITS"][0]
+        iy = m["Material"]["Variables"]["STRESS_LIMITS"][1]
+        h0 = m["Material"]["Variables"]["HARDENING_PARAMETERS"][0]
+        h1 = m["Material"]["Variables"]["HARDENING_PARAMETERS"][1]
+        material[name]["E"] = ym
+        material[name]["nu"] = nu
+        material[name]["yield_stress"] = y
+        material[name]["inf_yield_stress"] = iy
+        material[name]["H0"] = h0
+        material[name]["H1"] = h1
+        material[name]["C"] = compute_elastic_tensor(ym, nu)
 
-        material_element_list[material_name] = []
-        for elem in model[material_name].Elements:
-            material_element_list[material_name].append(elem.Id)
-    material_elem_map = {}
-    for k, v in material_element_list.items():
+        elem_list[name] = []
+        for elem in model[name].Elements:
+            elem_list[name].append(elem.Id)
+    elem_map = {}
+    for k, v in elem_list.items():
         for idx in v:
-            material_elem_map[idx] = k
-    return material_properties, material_elem_map
+            elem_map[idx] = k
+    return material, elem_map
 
 
+def compute_damage(rtd, data, t, rvalue_correl, ips_per_elem, material, elem_map):
+    def q(r, e, y, iy, h0, h1):
+        r0 = y / math.sqrt(e)
+        q0 = r0  # strain_variable_init
+        q1 = iy / math.sqrt(e)  # stress_variable_inf
+        r1 = r0 + (q1 - q0) / h0
+        if r < r0:
+            return q0
+        if r >= r0 and r < r1:
+            return q0 + h0 * (r - r0)
+        # Case r >= r1:
+        return q1 + h1 * (r - r1)
+
+    rvalue = [x[0] for x in rtd.get_rvalue(data, t + 1)]  # shape (n, 1) -> (n,)
+    rvalue_global = np.dot(rvalue_correl, rvalue)
+    rvalue_in_ips = {}
+    for e, nip in ips_per_elem.items():
+        rvalue_in_ips[e] = rvalue_global[:nip]
+        rvalue_global = rvalue_global[nip:]
+    damage = []
+    for e, nip in ips_per_elem.items():
+        # C = material[elem_map[e]]["C"]
+        # nu = material[elem_map[e]]["nu"]
+        ym = material[elem_map[e]]["E"]
+        y = material[elem_map[e]]["yield_stress"]
+        iy = material[elem_map[e]]["inf_yield_stress"]
+        h0 = material[elem_map[e]]["H0"]
+        h1 = material[elem_map[e]]["H1"]
+        r0 = y / math.sqrt(ym)
+        d_elem = 0
+        for r in rvalue_in_ips[e]:
+            if r < r0:
+                r = r0
+            d_ip = 1 - q(r, ym, y, iy, h0, h1) / r  # damage at ip
+            d_elem += d_ip / nip  # damage homogenized in elem
+        damage.append(d_elem)
+    return np.array(damage).reshape((-1, 1))  # formatting for meshio
 #
 # End functions for DAMAGE reconstruction
 #
@@ -233,7 +255,6 @@ def ei_to_reconstr():
         )
     return points
 
-
 class Reconstruct(Common):
     def __init__(self, **kargs):
         super().__init__(**kargs)
@@ -264,13 +285,14 @@ class Reconstruct(Common):
     def gather_rtdata(self, rtdata_path):
         data = json.loads(rtdata_path.read_text())
         nsteps = rtd.get_nsteps(data)
-        cstrain = np.array(rtd.get_cstrain(data))
-        stress = rtd.get_mstrain(data)
-        mstrain = np.array(rtd.get_mstrain(data))
         nmodes = rtd.get_nmodes(data)
         npoints = rtd.get_npoints(data)
+        cstrain = np.array(rtd.get_cstrain(data))
+        stress = rtd.get_mstrain(data)
+        rvalue = rtd.get_rvalue(data)
+        mstrain = np.array(rtd.get_mstrain(data))
         self.reconstruct_micro = True if rtd.udata(data) else False
-        return nsteps, nmodes, npoints, cstrain, stress, mstrain
+        return nsteps, nmodes, npoints, cstrain, stress, rvalue, mstrain
 
     def gather_datasets(self, nmodes, npoints):
         strain_modes = self.get_dataset("BASES", "STRAIN")[:, :nmodes]
@@ -349,7 +371,7 @@ class Reconstruct(Common):
 
     def reconstruct(self, rtdata_path):
         logger.debug(f"Loading runtime data {rtdata_path}")
-        nsteps, nmodes, npoints, cstrain, stress, mstrain = self.gather_rtdata(
+        nsteps, nmodes, npoints, cstrain, stress, rvalue, mstrain = self.gather_rtdata(
             rtdata_path
         )
 
@@ -404,42 +426,18 @@ class Reconstruct(Common):
                     f"strain", strain_modes, cstrain, t, nr_of_ips
                 )
 
-                ### Adding damage START
                 if not self.skip_damage_reconstruction:
                     logger.debug(" - Solving damage")
-                    damage_list = []
-                    rvalue_list = []
-                    r = np.dot(r_value_correl, data["rvalue"][t])
-                    r_in_elem = {}
-                    for elem_id, nr_ips in nr_of_ips.items():
-                        r_in_elem[elem_id] = r[:nr_ips]
-                        r = r[nr_ips:]
-                    for elem_id, nr_ips in nr_of_ips.items():
-                        C = material_properties[material_elem_map[elem_id]]["C"]
-                        E = material_properties[material_elem_map[elem_id]]["E"]
-                        nu = material_properties[material_elem_map[elem_id]]["nu"]
-                        yield_stress = material_properties[material_elem_map[elem_id]][
-                            "yield_stress"
-                        ]
-                        inf_yield_stress = material_properties[
-                            material_elem_map[elem_id]
-                        ]["inf_yield_stress"]
-                        H0 = material_properties[material_elem_map[elem_id]]["H0"]
-                        H1 = material_properties[material_elem_map[elem_id]]["H1"]
-                        r0 = yield_stress / math.sqrt(E)
-                        damage = 0
-                        rvalue = 0
-                        for r in r_in_elem[elem_id]:
-                            rvalue += r / nr_ips
-                            if r < r0:
-                                r = r0
-                            d = 1 - q(r, E, yield_stress, inf_yield_stress, H0, H1) / r
-                            damage += d / nr_ips
-                        damage_list.append(damage)
-                    element_damage = np.array(damage_list).reshape(
-                        (-1, 1)
-                    )  # formatting for meshio
-                # Adding damage END
+                    data = json.loads(rtdata_path.read_text())
+                    element_damage = compute_damage(
+                        rtd,
+                        data,
+                        t,
+                        r_value_correl,
+                        nr_of_ips,
+                        material_properties,
+                        material_elem_map,
+                    )
 
                 if self.reconstruct_micro:
                     logger.debug(" - Writing micro runtime data")
