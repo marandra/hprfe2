@@ -72,24 +72,26 @@ def write_from_reconstruction(fname, rtdata, mstrain, step, idx):
 
     # init
     if step == 1:
-        data = init_l1(data, *prepare_from_reconstruction_l1(rtdata, idx))
+        data = _init_l1(data, *_prepare_from_reconstruction_l1(rtdata, idx))
 
     # update
     data[NSTEPS] = step
-    data = append_l1(data, *get_data_from_reconstruction_l1(rtdata, step, idx), mstrain)
+    data = _append_l1(
+        data, *_get_data_from_reconstruction_l1(rtdata, step, idx), mstrain
+    )
 
     # write
     with open(fname, "w") as f:
         json.dump(data, f, indent=2)
 
 
-def prepare_from_reconstruction_l1(rtdata, idx):
+def _prepare_from_reconstruction_l1(rtdata, idx):
     nmodes = len(rtdata[UCSTRAIN][0][idx])
     npoints = len(rtdata[USTRESS][0][idx])
     return nmodes, npoints
 
 
-def get_data_from_reconstruction_l1(rtdata, step, idx):
+def _get_data_from_reconstruction_l1(rtdata, step, idx):
     cstrain = rtdata[UCSTRAIN][step - 1][idx]
     stress = rtdata[USTRESS][step - 1][idx]
     rvalue = rtdata[RVALUE][step - 1][idx]
@@ -111,22 +113,22 @@ def write_from_modelpart(fname, mp, e, ip, nested=False):
 
     # init
     if step == 1:
-        data = init_l1(data, *prepare_from_modelpart_l1(mp, e, ip))
+        data = _init_l1(data, *_prepare_from_modelpart_l1(mp, e, ip))
         if nested:
-            data = init_l2(data, *prepare_from_modelpart_l2(mp, e, ip))
+            data = _init_l2(data, *_prepare_from_modelpart_l2(mp, e, ip))
 
     # update
     data[NSTEPS] = step
-    data = append_l1(data, *get_data_from_modelpart_l1(mp, e, ip))
+    data = _append_l1(data, *_get_data_from_modelpart_l1(mp, e, ip))
     if nested:
-        data = append_l2(data, *get_data_from_modelpart_l2(mp, e, ip))
+        data = _append_l2(data, *_get_data_from_modelpart_l2(mp, e, ip))
 
     # write
     with open(fname, "w") as f:
         json.dump(data, f, indent=2)
 
 
-def prepare_from_modelpart_l1(mp, e, ip):
+def _prepare_from_modelpart_l1(mp, e, ip):
     for elem in mp.Elements:
         if elem.Id == e:
             cstrain = elem.CalculateOnIntegrationPoints(
@@ -135,7 +137,7 @@ def prepare_from_modelpart_l1(mp, e, ip):
             nmodes = len(cstrain)
             del cstrain
 
-            ### TODO: volver aqui cuando optimicemos el resize de stress
+            # TODO: volver aqui cuando optimicemos el resize de stress
             ip_data = elem.CalculateOnIntegrationPoints(
                 MSR.CAUCHY_STRESS_VECTOR_L1, mp.ProcessInfo
             )[ip]
@@ -149,17 +151,17 @@ def prepare_from_modelpart_l1(mp, e, ip):
             return nmodes, npoints
 
 
-def get_data_from_modelpart_l1(mp, e, ip):
+def _get_data_from_modelpart_l1(mp, e, ip):
     for elem in mp.Elements:
         if elem.Id == e:
 
-            ### strain modes coefficients
+            # strain modes coefficients
             ip_data = elem.CalculateOnIntegrationPoints(
                 MSR.REDUCED_MODES_WEIGHTS_L1, mp.ProcessInfo
             )[ip]
             cstrain = [x for x in ip_data]
 
-            ### stress. L1: a vector of size npoints * ncomps
+            # stress. L1: a vector of size npoints * ncomps
             ip_data = elem.CalculateOnIntegrationPoints(
                 MSR.CAUCHY_STRESS_VECTOR_L1, mp.ProcessInfo
             )
@@ -168,11 +170,11 @@ def get_data_from_modelpart_l1(mp, e, ip):
             # equivalent to np.resize(-1, nc) but for lists
             stress = [ldata[x : x + nc] for x in range(0, len(ldata), nc)]
 
-            ### initial strain received from macro scale
+            # initial strain received from macro scale
             ip_data = elem.CalculateOnIntegrationPoints(KM.STRAIN, mp.ProcessInfo)
             mstrain = [x for x in ip_data[ip]]
 
-            ### r_value, i.e., internal variable of CL
+            # r_value, i.e., internal variable of CL
             # must unpack structure:
             # [npoints, niv1, niv2, .. niv_npoints, iv0, iv1, ..., iv_n)
             ip_data = list(
@@ -191,7 +193,7 @@ def get_data_from_modelpart_l1(mp, e, ip):
             return cstrain, stress, rvalue, mstrain
 
 
-def prepare_from_modelpart_l2(mp, e, ip):
+def _prepare_from_modelpart_l2(mp, e, ip):
     for elem in mp.Elements:
         if elem.Id == e:
             ip_data = elem.CalculateOnIntegrationPoints(
@@ -221,11 +223,11 @@ def prepare_from_modelpart_l2(mp, e, ip):
             return nmodes, npoints
 
 
-def get_data_from_modelpart_l2(mp, e, ip):
+def _get_data_from_modelpart_l2(mp, e, ip):
     for elem in mp.Elements:
         if elem.Id == e:
 
-            ### strain modes coefficients
+            # strain modes coefficients
             ip_data = elem.CalculateOnIntegrationPoints(
                 MSR.REDUCED_MODES_WEIGHTS_L2, mp.ProcessInfo
             )
@@ -240,7 +242,7 @@ def get_data_from_modelpart_l2(mp, e, ip):
                 data.append(data_i)
             cstrain = data
 
-            ### stress
+            # stress
             data = numpy.array(
                 elem.CalculateOnIntegrationPoints(
                     MSR.CAUCHY_STRESS_VECTOR_L2, mp.ProcessInfo
@@ -256,64 +258,6 @@ def get_data_from_modelpart_l2(mp, e, ip):
 #
 # Agnostic functions
 #
-
-
-def append_l1(data, cstrain, stress, rvalue, mstrain):
-    """read from and write to file at each timestep,
-    to not loose data in case run is cancelled"""
-
-    field = CSTRAIN
-    if not field in data.keys():
-        data[field] = []
-    data[field].append(cstrain)
-
-    field = STRESS
-    if not field in data.keys():
-        data[field] = []
-    data[field].append(stress)
-
-    field = RVALUE
-    if not field in data.keys():
-        data[field] = []
-    data[field].append(rvalue)
-
-    field = MSTRAIN
-    if not field in data.keys():
-        data[field] = []
-    data[field].append(mstrain)
-
-    return data
-
-
-def append_l2(data, cstrain, stress):
-    """read from and write to file at each timestep,
-    to not loose data in case run is cancelled"""
-
-    field = UCSTRAIN
-    if not field in data.keys():
-        data[field] = []
-    data[field].append(cstrain)
-
-    field = USTRESS
-    if not field in data.keys():
-        data[field] = []
-    data[field].append(stress)
-
-    return data
-
-
-def init_l1(data, nmodes, npoints):
-    data[NMODES] = nmodes
-    data[NPOINTS] = npoints
-    return data
-
-
-def init_l2(data, nmodes, npoints):
-    data[UNMODES] = nmodes
-    data[UNPOINTS] = npoints
-    return data
-
-
 def init(fname):
     """Initialize the file and only an empty data structure"""
 
@@ -326,3 +270,59 @@ def init(fname):
 
     with open(fname, "w") as f:
         json.dump(data, f, indent=2)
+
+
+def _append_l1(data, cstrain, stress, rvalue, mstrain):
+    """read from and write to file at each timestep,
+    to not loose data in case run is cancelled"""
+
+    field = CSTRAIN
+    if field not in data.keys():
+        data[field] = []
+    data[field].append(cstrain)
+
+    field = STRESS
+    if field not in data.keys():
+        data[field] = []
+    data[field].append(stress)
+
+    field = RVALUE
+    if field not in data.keys():
+        data[field] = []
+    data[field].append(rvalue)
+
+    field = MSTRAIN
+    if field not in data.keys():
+        data[field] = []
+    data[field].append(mstrain)
+
+    return data
+
+
+def _append_l2(data, cstrain, stress):
+    """read from and write to file at each timestep,
+    to not loose data in case run is cancelled"""
+
+    field = UCSTRAIN
+    if field not in data.keys():
+        data[field] = []
+    data[field].append(cstrain)
+
+    field = USTRESS
+    if field not in data.keys():
+        data[field] = []
+    data[field].append(stress)
+
+    return data
+
+
+def _init_l1(data, nmodes, npoints):
+    data[NMODES] = nmodes
+    data[NPOINTS] = npoints
+    return data
+
+
+def _init_l2(data, nmodes, npoints):
+    data[UNMODES] = nmodes
+    data[UNPOINTS] = npoints
+    return data
