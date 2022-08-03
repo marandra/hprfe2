@@ -34,7 +34,7 @@ from KratosMultiphysics.StructuralMechanicsApplication.structural_mechanics_anal
 )
 
 from common import Common
-import write_runtime_data
+import runtime_data as rtd
 
 np.set_printoptions(
     linewidth=120,
@@ -186,7 +186,7 @@ def init_kratos(mp_name, pmaterials, pmodel):
     return model, modelpart
 
 
-def init_urt_data():
+def ei_to_reconstr():
 
     # Begin ADHOC. FIXME
     # Select and initialize micros to write
@@ -218,16 +218,9 @@ def init_urt_data():
         (24, 65, 2),
     ]
     uelems = [3, 0, 2, 4, 5]  # elements: 4, 18, x, 41, 49, 61
-    uei = [uei_pairs[i] for i in uelems]
+    aux = [uei_pairs[i] for i in uelems]
     # End ADHOC
 
-    urt_data = []
-    for up in uei:
-        ue = up[1]
-        ui = up[2]
-        filename = f"uruntime_{ue}_{ui}.json"
-        urt_data.append(write_runtime_data.RuntimeData(filename))
-    return urt_data, uei
 
 
 #def append_urt_data(urtdata, mei, tstep, nm, np, ucoeff, strain, stress, urvalue):
@@ -264,6 +257,17 @@ def append_urt_data(urtdata, mei, tstep, ucoeff, strain, stress, urvalue):
 
         with open(d.filename, "w") as f:
             json.dump(d.data, f, indent=2)
+    points = []
+    for p in aux:
+        points.append(
+            {
+                "fname": f"uruntime_{p[1]}_{p[2]}.json",
+                "idx": p[0],
+                "ee": p[1],
+                "ii": p[2],
+            }
+        )
+    return points
 
 
 class Reconstruct(Common):
@@ -301,12 +305,11 @@ class Reconstruct(Common):
         # Load required data meso and micro
         logger.debug(f"Loading runtime data {runtime_data_path}")
         data = json.loads(runtime_data_path.read_text())
-        nr_timesteps = data["nr_timesteps"]
-
-        rve_interp_params = np.array(data[f"strain_coeffs"])
-        rve_macro_strain = np.array(data[f"macro_strain"])
-        nr_modes = data[f"nr_modes"]
-        nr_points = data[f"nr_points"] - 1
+        nr_timesteps = rtd.get_nsteps(data)
+        rve_interp_params = np.array(rtd.get_cstrain(data))
+        rve_macro_strain = np.array(rtd.get_mstrain(data))
+        nr_modes = rtd.get_nmodes(data)
+        nr_points = rtd.get_npoints(data)
 
         logger.debug("Loading strain bases")
         strain_modes = self.get_dataset("BASES", "STRAIN")[:, :nr_modes]
@@ -362,9 +365,14 @@ class Reconstruct(Common):
         ip_elem_map, nr_of_ips = self.element_map()
 
         # Generate micro runtime data if required data present
-        if data["u_nr_points"] and data["u_nr_modes"] > 0:
+        #if "u_nr_points" in data.keys():
+        if rtd.udata(data):
             self.reconstruct_micro = True
-            urtd, uei = init_urt_data()
+            # urtd, uei = init_urt_data()
+            ei = ei_to_reconstr()
+            for d in ei:
+                # runtime_data.write(d["fname"],mp,d["elem"],d["ip"],nested=false)
+                rtd.init(d["fname"])
 
         # Open XDMF file for writing field data for each timestep
         filename = "rve_reconstructed.xdmf"
@@ -398,7 +406,7 @@ class Reconstruct(Common):
                     logger.debug("Solving damage")
                     damage_list = []
                     rvalue_list = []
-                    r = np.dot(r_value_correl, data["r_value"][t])
+                    r = np.dot(r_value_correl, data["rvalue"][t])
                     r_in_elem = {}
                     for elem_id, nr_ips in nr_of_ips.items():
                         r_in_elem[elem_id] = r[:nr_ips]
@@ -430,15 +438,16 @@ class Reconstruct(Common):
                     )  # formatting for meshio
                 ### Adding damage END
 
-                logger.debug("Writing timestep data")
-
                 if self.reconstruct_micro:
-                    #um = data["u_nr_modes"]
-                    #up = data["u_nr_points"]
-                    usmc = data["u_strain_coeffs"][t]
-                    urval = data["u_r_value"][t]
-                    #append_urt_data(urtd, uei, t, um, up, uc, strain_e, stress_e, ur)
-                    append_urt_data(urtd, uei, t, usmc, strain_e, stress_e, urval)
+                    logger.debug(" - Writing micro runtime data")
+                    for d in ei:
+                        fname = d["fname"]
+                        idx = d["idx"]
+                        ee = d["ee"]
+                        ii = d["ii"]
+                        rtd.write_from_reconstruction(
+                            fname, data, list(strain_e[ee][ii]), t + 1, idx
+                        )
 
                 # Append XDMF Paraview data
                 point_data = {}
