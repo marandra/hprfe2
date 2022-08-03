@@ -21,6 +21,42 @@ URVALUE = "u_" + RVALUE
 UMSTRAIN = "u_" + MSTRAIN
 
 #
+# Getters
+#
+
+
+def get_nsteps(data):
+    return data[NSTEPS]
+
+
+def get_nmodes(data):
+    return data[NMODES]
+
+
+def get_npoints(data):
+    return data[NPOINTS] - 1
+
+
+def get_cstrain(data, step=None):
+    if step:
+        return data[CSTRAIN][step - 1]
+    return data[CSTRAIN]
+
+
+def get_rvalue(data, step=None):
+    if step:
+        return data[RVALUE][step - 1]
+    return data[RVALUE]
+
+
+def get_mstrain(data, step=None):
+    if step:
+        return data[MSTRAIN][step - 1]
+    return data[MSTRAIN]
+
+def udata(data):
+    return UNPOINTS in data.keys()
+#
 # Functions that process data from reconstruction
 #
 
