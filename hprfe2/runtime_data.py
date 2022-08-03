@@ -42,6 +42,10 @@ def get_cstrain(data, step=None):
         return data[CSTRAIN][step - 1]
     return data[CSTRAIN]
 
+def get_stress(data, step=None):
+    if step:
+        return data[STRESS][step - 1]
+    return data[STRESS]
 
 def get_rvalue(data, step=None):
     if step:
