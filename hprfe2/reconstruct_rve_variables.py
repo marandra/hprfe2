@@ -18,7 +18,6 @@ Arguments:
 root              Root path of the project
 runtime_data      Generated run-time data file
 """
-import os
 from pathlib import Path
 import logging
 import math
@@ -42,9 +41,10 @@ np.set_printoptions(
 )
 
 
-##
-## Functions for DAMAGE reconstruction
-##
+#
+# Functions for DAMAGE reconstruction
+#
+
 
 def q(r, E, yield_stress, inf_yield_stress, H0, H1):
     r0 = yield_stress / math.sqrt(E)
@@ -112,9 +112,9 @@ def get_material_properties(model, props):
     return material_properties, material_elem_map
 
 
-##
-## End functions for DAMAGE reconstruction
-##
+#
+# End functions for DAMAGE reconstruction
+#
 
 
 def strain_voigt_to_tensor(strain_vector):
@@ -221,42 +221,6 @@ def ei_to_reconstr():
     aux = [uei_pairs[i] for i in uelems]
     # End ADHOC
 
-
-
-#def append_urt_data(urtdata, mei, tstep, nm, np, ucoeff, strain, stress, urvalue):
-def append_urt_data(urtdata, mei, tstep, ucoeff, strain, stress, urvalue):
-    """Appends data to the micro runtime data file.
-
-    urtdata: list of objects for writing u data
-    mei: list of tuples (id, element, ip) of the meso, e.g.
-        mei_pairs = [
-            (3, 4, 0),
-            (0, 18, 2),
-            (2, 41, 0),
-            (4, 49, 0),
-            (5, 61, 3),
-            ... 
-        ]
-    tstep: current time step
-    """
-    for i, up in enumerate(mei):
-        uc = up[0]
-        ue = up[1]
-        ui = up[2]
-        d = urtdata[i]
-
-        d.data["nr_timesteps"] = tstep + 1
-        #d.data["nr_modes"] = nm
-        #d.data["nr_points"] = np
-        d.data["strain_coeffs"].append(ucoeff[uc])
-        # solo para el desplazamiento total
-        d.data["macro_strain"].append(list(strain[ue][ui, :]))
-        d.data["stress"].append(list(stress[ue][ui, :]))
-        # not that easy, rvalue es un solo vector laaaargo
-        #d.data["r_value"].append(urvalue[uc])
-
-        with open(d.filename, "w") as f:
-            json.dump(d.data, f, indent=2)
     points = []
     for p in aux:
         points.append(
@@ -275,10 +239,6 @@ class Reconstruct(Common):
         super().__init__(**kargs)
         self.nr_voigt_comps = 6
         self.reconstruct_micro = False
-
-    ##
-    ## Functions for DAMAGE reconstruction
-    ##
 
     def element_map(self):
         """Compute auxiliar vector with the index of an element in the global vector of dofs.
@@ -382,13 +342,13 @@ class Reconstruct(Common):
             for t in range(nr_timesteps):
                 logger.info("Timestep {}".format(t))
 
-                logger.debug("Solving fluctuant displacement")
+                logger.debug(" - Solving fluctuant displacement")
                 displacement = np.dot(
                     strain_correl[:, :nr_modes], rve_interp_params[t, :]
                 )
                 displacement = np.reshape(displacement, (-1, 3))
 
-                logger.debug("Solving total displacement")
+                logger.debug(" - Solving total displacement")
                 strain_macro = rve_macro_strain[t, :]
                 strain_macro_tensor = strain_voigt_to_tensor(strain_macro)
                 comp = np.dot(strain_macro_tensor, rve_points.T)
@@ -403,7 +363,7 @@ class Reconstruct(Common):
 
                 ### Adding damage START
                 if not self.skip_damage_reconstruction:
-                    logger.debug("Solving damage")
+                    logger.debug(" - Solving damage")
                     damage_list = []
                     rvalue_list = []
                     r = np.dot(r_value_correl, data["rvalue"][t])
@@ -450,11 +410,14 @@ class Reconstruct(Common):
                         )
 
                 # Append XDMF Paraview data
+                logger.debug(" - Writing timestep data")
                 point_data = {}
                 cell_data = {}
                 point_data["DISPLACEMENT_FLUCT"] = np.reshape(displacement, (-1, 3))
                 point_data["DISPLACEMENT"] = total_displacement
-                workaround_flag = False  # FIXME. Workaround for paraview 5.10, ok for <=5.9
+                workaround_flag = (
+                    False  # FIXME. Workaround for paraview 5.10, ok for <=5.9
+                )
                 if not workaround_flag:
                     cell_data["STRAIN"] = strain_h
                     cell_data["STRESS"] = stress_h
@@ -482,7 +445,7 @@ class Reconstruct(Common):
                 writer.write_data(t, point_data=point_data, cell_data=cell_data)
 
     def compute_field_stress(self, field, stress_correl, data, t, nr_of_ips):
-        logger.debug(f"Computing {field} field")
+        logger.debug(f" - Computing {field} field")
         # Este es el stress en cada punto de gauss meso
         stress = np.dot(stress_correl, np.reshape(data[field][t], (-1, 1)))
         stress_r = stress.reshape((-1, 6))
@@ -499,7 +462,7 @@ class Reconstruct(Common):
     def compute_field_strain(
         self, field, strain_modes, rve_interpolation_params, t, nr_of_ips
     ):
-        logger.debug(f"Computing {field} field")
+        logger.debug(f" - Computing {field} field")
         strain_global = np.dot(strain_modes, rve_interpolation_params[t, :])
         strain_r = strain_global.reshape((-1, 6))
         strain_e = {}
