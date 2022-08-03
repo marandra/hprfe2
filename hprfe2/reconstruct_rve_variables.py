@@ -261,48 +261,47 @@ class Reconstruct(Common):
             count += nr_ip * self.nr_voigt_comps
         return elem_map, nips
 
-    def reconstruc(self, runtime_data_path):
-        # Load required data meso and micro
-        logger.debug(f"Loading runtime data {runtime_data_path}")
-        data = json.loads(runtime_data_path.read_text())
-        nr_timesteps = rtd.get_nsteps(data)
-        rve_interp_params = np.array(rtd.get_cstrain(data))
-        rve_macro_strain = np.array(rtd.get_mstrain(data))
-        nr_modes = rtd.get_nmodes(data)
-        nr_points = rtd.get_npoints(data)
+    def gather_rtdata(self, rtdata_path):
+        data = json.loads(rtdata_path.read_text())
+        nsteps = rtd.get_nsteps(data)
+        cstrain = np.array(rtd.get_cstrain(data))
+        stress = rtd.get_mstrain(data)
+        mstrain = np.array(rtd.get_mstrain(data))
+        nmodes = rtd.get_nmodes(data)
+        npoints = rtd.get_npoints(data)
+        self.reconstruct_micro = True if rtd.udata(data) else False
+        return nsteps, nmodes, npoints, cstrain, stress, mstrain
 
-        logger.debug("Loading strain bases")
-        strain_modes = self.get_dataset("BASES", "STRAIN")[:, :nr_modes]
-
-        logger.debug("Loading strain correlation matrix")
-        strain_correl = self.get_dataset("CORRELATION", "STRAIN", nr_modes)
-
-        logger.debug("Loading stress correlation matrix")
-        stress_correl = self.get_dataset("CORRELATION", "STRESS", nr_modes, nr_points)
-
-        logger.debug("Loading rvalue correlation matrix")
+    def gather_datasets(self, nmodes, npoints):
+        strain_modes = self.get_dataset("BASES", "STRAIN")[:, :nmodes]
+        strain_correl = self.get_dataset("CORRELATION", "STRAIN", nmodes)
+        stress_correl = self.get_dataset("CORRELATION", "STRESS", nmodes, npoints)
         self.skip_damage_reconstruction = False
+        r_value_correl = None
         try:
-            r_value_correl = self.get_dataset(
-                "CORRELATION", "RVALUE", nr_modes, nr_points
-            )
+            r_value_correl = self.get_dataset("CORRELATION", "RVALUE", nmodes, npoints)
         except KeyError:
             logger.warning(
-                "  - RVALUE correlation matrix not present. Skipping DAMAGE reconstruction"
+                "RVALUE correlation matrix not present. Skipping DAMAGE reconstruction"
             )
             self.skip_damage_reconstruction = True
 
-        logger.debug("Loading rve data")
-        rve_data = self.get_dataset("DATASET", "RVE", nr_modes, nr_points)
+        rve_data = self.get_dataset("DATASET", "RVE", nmodes, npoints)
+        model = self.get_dataset("TEMPLATE", "MODEL")
+        return (
+            strain_modes,
+            strain_correl,
+            stress_correl,
+            r_value_correl,
+            rve_data,
+            model,
+        )
 
-        logger.debug("Loading rve model")
-        dset = self.get_dataset("TEMPLATE", "MODEL")
-
+    def gather_model(self, model):
         p_model = Path("model.mdpa")
-        p_model.write_text(dset)
+        p_model.write_text(model)
         rve_points, rve_cells = get_mesh(str(p_model))
 
-        logger.debug("Loading rve materials")
         model_part_name = json.loads(
             self.get_dataset("TEMPLATE", "PARAMETERS_SAMPLING")
         )["solver_settings"]["model_part_name"]
@@ -316,6 +315,56 @@ class Reconstruct(Common):
         )
         p_materials.unlink()
         p_model.unlink()
+        return rve_points, rve_cells
+
+    def compute_field_stress(self, field, stress_correl, data, t, nr_of_ips):
+        logger.debug(f" - Computing {field} field")
+        # Este es el stress en cada punto de gauss meso
+        stress_global = np.dot(stress_correl, np.reshape(data[field][t], (-1, 1)))
+        stress_r = stress_global.reshape((-1, 6))
+        stress_e = {}
+        # Este es el stress homogenizado en cada elemento meso
+        stress_h = []
+        idx = 0
+        for elem_id, nr_ips in nr_of_ips.items():
+            stress_e[elem_id] = stress_r[idx : idx + nr_ips, :]
+            stress_h.append(np.mean(stress_e[elem_id], axis=0))
+            idx += nr_ips
+        return stress_e, np.array(stress_h).reshape(-1, 6)
+
+    def compute_field_strain(
+        self, field, strain_modes, rve_interpolation_params, t, nr_of_ips
+    ):
+        logger.debug(f" - Computing {field} field")
+        strain_global = np.dot(strain_modes, rve_interpolation_params[t, :])
+        strain_r = strain_global.reshape((-1, 6))
+        strain_e = {}
+        strain_h = []
+        idx = 0
+        for elem_id, nr_ips in nr_of_ips.items():
+            strain_e[elem_id] = strain_r[idx : idx + nr_ips, :]
+            strain_h.append(np.mean(strain_e[elem_id], axis=0))
+            idx += nr_ips
+        return strain_e, np.array(strain_h).reshape((-1, 6))
+
+    def reconstruct(self, rtdata_path):
+        logger.debug(f"Loading runtime data {rtdata_path}")
+        nsteps, nmodes, npoints, cstrain, stress, mstrain = self.gather_rtdata(
+            rtdata_path
+        )
+
+        logger.debug("Loading databases")
+        (
+            strain_modes,
+            strain_correl,
+            stress_correl,
+            r_value_correl,
+            rve_data,
+            model,
+        ) = self.gather_datasets(nmodes, npoints)
+
+        logger.debug("Loading rve model and materials")
+        rve_points, rve_cells = self.gather_model(model)
 
         if not self.skip_damage_reconstruction:
             material_properties, material_elem_map = get_material_properties(
@@ -325,13 +374,8 @@ class Reconstruct(Common):
         ip_elem_map, nr_of_ips = self.element_map()
 
         # Generate micro runtime data if required data present
-        #if "u_nr_points" in data.keys():
-        if rtd.udata(data):
-            self.reconstruct_micro = True
-            # urtd, uei = init_urt_data()
-            ei = ei_to_reconstr()
-            for d in ei:
-                # runtime_data.write(d["fname"],mp,d["elem"],d["ip"],nested=false)
+        if self.reconstruct_micro:
+            for d in ei_to_reconstr():
                 rtd.init(d["fname"])
 
         # Open XDMF file for writing field data for each timestep
@@ -339,26 +383,25 @@ class Reconstruct(Common):
         meshio.write_points_cells(filename, rve_points, rve_cells)
         with meshio.xdmf.TimeSeriesWriter(filename) as writer:
             writer.write_points_cells(rve_points, rve_cells)
-            for t in range(nr_timesteps):
+            for t in range(nsteps):
                 logger.info("Timestep {}".format(t))
 
                 logger.debug(" - Solving fluctuant displacement")
-                displacement = np.dot(
-                    strain_correl[:, :nr_modes], rve_interp_params[t, :]
-                )
+                displacement = np.dot(strain_correl[:, :nmodes], cstrain[t, :])
                 displacement = np.reshape(displacement, (-1, 3))
 
                 logger.debug(" - Solving total displacement")
-                strain_macro = rve_macro_strain[t, :]
+                strain_macro = mstrain[t, :]
                 strain_macro_tensor = strain_voigt_to_tensor(strain_macro)
                 comp = np.dot(strain_macro_tensor, rve_points.T)
                 total_displacement = comp.T + displacement
 
+                data = json.loads(rtdata_path.read_text())
                 stress_e, stress_h = self.compute_field_stress(
                     f"stress", stress_correl, data, t, nr_of_ips
                 )
                 strain_e, strain_h = self.compute_field_strain(
-                    f"strain", strain_modes, rve_interp_params, t, nr_of_ips
+                    f"strain", strain_modes, cstrain, t, nr_of_ips
                 )
 
                 ### Adding damage START
@@ -396,11 +439,12 @@ class Reconstruct(Common):
                     element_damage = np.array(damage_list).reshape(
                         (-1, 1)
                     )  # formatting for meshio
-                ### Adding damage END
+                # Adding damage END
 
                 if self.reconstruct_micro:
                     logger.debug(" - Writing micro runtime data")
-                    for d in ei:
+                    data = json.loads(rtdata_path.read_text())
+                    for d in ei_to_reconstr():
                         fname = d["fname"]
                         idx = d["idx"]
                         ee = d["ee"]
@@ -444,36 +488,6 @@ class Reconstruct(Common):
                     cell_data["DAMAGE"] = element_damage
                 writer.write_data(t, point_data=point_data, cell_data=cell_data)
 
-    def compute_field_stress(self, field, stress_correl, data, t, nr_of_ips):
-        logger.debug(f" - Computing {field} field")
-        # Este es el stress en cada punto de gauss meso
-        stress = np.dot(stress_correl, np.reshape(data[field][t], (-1, 1)))
-        stress_r = stress.reshape((-1, 6))
-        stress_e = {}
-        # Este es el stress homogenizado en cada elemento meso
-        stress_h = []
-        idx = 0
-        for elem_id, nr_ips in nr_of_ips.items():
-            stress_e[elem_id] = stress_r[idx : idx + nr_ips, :]
-            stress_h.append(np.mean(stress_e[elem_id], axis=0))
-            idx += nr_ips
-        return stress_e, np.array(stress_h).reshape(-1, 6)
-
-    def compute_field_strain(
-        self, field, strain_modes, rve_interpolation_params, t, nr_of_ips
-    ):
-        logger.debug(f" - Computing {field} field")
-        strain_global = np.dot(strain_modes, rve_interpolation_params[t, :])
-        strain_r = strain_global.reshape((-1, 6))
-        strain_e = {}
-        strain_h = []
-        idx = 0
-        for elem_id, nr_ips in nr_of_ips.items():
-            strain_e[elem_id] = strain_r[idx : idx + nr_ips, :]
-            strain_h.append(np.mean(strain_e[elem_id], axis=0))
-            idx += nr_ips
-        return strain_e, np.array(strain_h).reshape((-1, 6))
-
 
 #######################################
 # Main
@@ -494,4 +508,4 @@ if __name__ == "__main__":
     ARGS = docopt(__doc__)
 
     RECONST = Reconstruct(root_path=Path(ARGS["<root>"]))
-    RECONST.reconstruc(Path(ARGS["<runtime_data>"]))
+    RECONST.reconstruct(Path(ARGS["<runtime_data>"]))
