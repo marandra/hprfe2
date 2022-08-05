@@ -192,9 +192,10 @@ PARAMS = """
            "process_name": "WriteRveReconstructionData",
            "Parameters": {
                "model_part_name": "Structure.MACRO",
-               "filename": "rve_runtime_data_el1_ip0.json",
+               "filename": "rtd_1_0.json",
                "element": 1,
-               "integration_point": 0
+               "integration_point": 0,
+               "write_nested": true
                }
            },{
             "python_module": "kratos_process_write_elements_homogenized_output",
