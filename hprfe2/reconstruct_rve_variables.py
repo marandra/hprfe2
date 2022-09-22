@@ -134,6 +134,8 @@ def compute_damage(rtd, data, t, rvalue_correl, ips_per_elem, material, elem_map
             d_elem += d_ip / nip  # damage homogenized in elem
         damage.append(d_elem)
     return np.array(damage).reshape((-1, 1))  # formatting for meshio
+
+
 #
 # End functions for DAMAGE reconstruction
 #
@@ -208,7 +210,7 @@ def init_kratos(mp_name, pmaterials, pmodel):
     return model, modelpart
 
 
-def ei_to_reconstr():
+def ei_to_reconstr(rtdata_path):
 
     # Begin ADHOC. FIXME
     # Select and initialize micros to write
@@ -247,7 +249,7 @@ def ei_to_reconstr():
     for p in aux:
         points.append(
             {
-                "fname": f"uruntime_{p[1]}_{p[2]}.json",
+                "fname": f"{rtdata_path.stem}-u_{p[1]}_{p[2]}.json",
                 "idx": p[0],
                 "ee": p[1],
                 "ii": p[2],
@@ -255,11 +257,14 @@ def ei_to_reconstr():
         )
     return points
 
+
 class Reconstruct(Common):
-    def __init__(self, **kargs):
+    def __init__(self, rtdata_path, **kargs):
         super().__init__(**kargs)
+        self.rtdata_path = rtdata_path
         self.nr_voigt_comps = 6
         self.reconstruct_micro = False
+        self.filename = f"{rtdata_path.stem}_reconstr.xdmf"
 
     def element_map(self):
         """Compute auxiliar vector with the index of an element in the global vector of dofs.
@@ -291,6 +296,7 @@ class Reconstruct(Common):
         stress = rtd.get_mstrain(data)
         rvalue = rtd.get_rvalue(data)
         mstrain = np.array(rtd.get_mstrain(data))
+        # TODO: Here we check if it is a meso or a micro, move it to other place
         self.reconstruct_micro = True if rtd.udata(data) else False
         return nsteps, nmodes, npoints, cstrain, stress, rvalue, mstrain
 
@@ -369,7 +375,8 @@ class Reconstruct(Common):
             idx += nr_ips
         return strain_e, np.array(strain_h).reshape((-1, 6))
 
-    def reconstruct(self, rtdata_path):
+    def reconstruct(self):
+        rtdata_path = self.rtdata_path
         logger.debug(f"Loading runtime data {rtdata_path}")
         nsteps, nmodes, npoints, cstrain, stress, rvalue, mstrain = self.gather_rtdata(
             rtdata_path
@@ -397,13 +404,12 @@ class Reconstruct(Common):
 
         # Generate micro runtime data if required data present
         if self.reconstruct_micro:
-            for d in ei_to_reconstr():
+            for d in ei_to_reconstr(self.rtdata_path):
                 rtd.init(d["fname"])
 
         # Open XDMF file for writing field data for each timestep
-        filename = "rve_reconstructed.xdmf"
-        meshio.write_points_cells(filename, rve_points, rve_cells)
-        with meshio.xdmf.TimeSeriesWriter(filename) as writer:
+        meshio.write_points_cells(self.filename, rve_points, rve_cells)
+        with meshio.xdmf.TimeSeriesWriter(self.filename) as writer:
             writer.write_points_cells(rve_points, rve_cells)
             for t in range(nsteps):
                 logger.info("Timestep {}".format(t))
@@ -442,7 +448,7 @@ class Reconstruct(Common):
                 if self.reconstruct_micro:
                     logger.debug(" - Writing micro runtime data")
                     data = json.loads(rtdata_path.read_text())
-                    for d in ei_to_reconstr():
+                    for d in ei_to_reconstr(self.rtdata_path):
                         fname = d["fname"]
                         idx = d["idx"]
                         ee = d["ee"]
@@ -505,5 +511,5 @@ if __name__ == "__main__":
 
     ARGS = docopt(__doc__)
 
-    RECONST = Reconstruct(root_path=Path(ARGS["<root>"]))
-    RECONST.reconstruct(Path(ARGS["<runtime_data>"]))
+    RECONST = Reconstruct(Path(ARGS["<runtime_data>"]), root_path=Path(ARGS["<root>"]))
+    RECONST.reconstruct()
