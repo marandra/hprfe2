@@ -135,6 +135,15 @@ def compute_damage(rtd, data, t, rvalue_correl, ips_per_elem, material, elem_map
         damage.append(d_elem)
     return np.array(damage).reshape((-1, 1))  # formatting for meshio
 
+def compute_stress_from_damage(damage_h, strain_h, ips_per_elem, material, elem_map):
+    stress_elem = []
+    for e, _ in ips_per_elem.items():
+        C = material[elem_map[e]]["C"]
+        s = strain_h[e-1].reshape((6, 1))
+        stress = (1 - damage_h[e-6]) * np.dot(C, s)
+        stress_elem.append(stress)
+    return np.array(stress_elem).reshape((-1, 6))  # formatting for meshio
+
 
 #
 # End functions for DAMAGE reconstruction
@@ -243,6 +252,8 @@ def ei_to_reconstr(rtdata_path):
     ]
     uelems = [3, 0, 2, 4, 5]  # elements: 4, 18, x, 41, 49, 61
     aux = [uei_pairs[i] for i in uelems]
+    # for 35p
+    aux = [(0, 1, 7), (1, 13, 7), (2, 28, 0), (3, 38, 6), (4, 53, 6), (5, 61, 5)]
     # End ADHOC
 
     points = []
@@ -435,7 +446,7 @@ class Reconstruct(Common):
                 if not self.skip_damage_reconstruction:
                     logger.debug(" - Solving damage")
                     data = json.loads(rtdata_path.read_text())
-                    element_damage = compute_damage(
+                    damage_h = compute_damage(
                         rtd,
                         data,
                         t,
@@ -444,6 +455,11 @@ class Reconstruct(Common):
                         material_properties,
                         material_elem_map,
                     )
+                    stressd_h = compute_stress_from_damage(damage_h, strain_h,
+                        nr_of_ips,
+                        material_properties,
+                        material_elem_map,
+                )
 
                 if self.reconstruct_micro:
                     logger.debug(" - Writing micro runtime data")
@@ -489,7 +505,8 @@ class Reconstruct(Common):
                     cell_data["STRESS_YZ"] = stress_h[:, 4].reshape((-1, 1))
                     cell_data["STRESS_XZ"] = stress_h[:, 5].reshape((-1, 1))
                 if not self.skip_damage_reconstruction:
-                    cell_data["DAMAGE"] = element_damage
+                    cell_data["DAMAGE"] = damage_h
+                    cell_data["STRESS_D"] = stressd_h
                 writer.write_data(t, point_data=point_data, cell_data=cell_data)
 
 
