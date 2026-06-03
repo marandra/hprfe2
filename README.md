@@ -42,15 +42,13 @@ solver. It is responsible for the parts of an HPR-FE² study that live
 - **Case generation** — read a parameter file and generate a set of
   ready-to-run simulation case directories (mesh, materials, BCs,
   solver settings, job scripts).
-- **Offline training** — drive snapshot acquisition runs, then build
-  the reduced basis via Randomized SVD or Block SVD
-  (NumPy / scikit-learn), and write the trained ROM to disk in a
-  format the solver can consume.
-- **HPC job orchestration** — submit Slurm jobs for case batches,
-  monitor status, retry failed jobs, and collect logs.
-- **Result collection and packaging** — gather per-case outputs into
-  a single dataset (HDF5 + metadata) with full traceability of input
-  parameters.
+- **Reduced-basis construction** — build the reduced bases from
+  solution snapshots via SVD (NumPy / scikit-learn) and select the
+  hyper-reduced integration-point (cubature) sets.
+- **HPC job scripts** — generate Slurm array launcher scripts for the
+  sampling and validation case batches, ready to submit on the cluster.
+- **Packaging** — pack the bases and datasets into HDF5 for the Kratos
+  solver to consume.
 - **Field reconstruction** — reconstruct full-field RVE responses from
   the reduced solution at user-selected macroscopic points for
   visualization and post-processing.
@@ -76,7 +74,8 @@ cd hprfe2
 pip install -e .
 ```
 
-Requires Python 3.8+, NumPy, SciPy, scikit-learn, h5py.
+Requires Python 3.6+ and `docopt`, `numpy`, `h5py`, `scikit-learn`,
+`meshio`.
 A working install of Kratos Multiphysics with
 [MultiscaleROMApplication](https://github.com/marandra/MultiscaleROMApplication)
 is required to actually run simulations; the package itself only
@@ -85,17 +84,19 @@ depends on Python.
 ## Quick start
 
 ```bash
-# Generate a batch of cases from a parameter file
-hprfe2 cases generate study.yaml --out cases/
+# Create a default configuration file in the project root
+hprfe2 config
 
-# Run the offline training stage on the generated snapshots
-hprfe2 train --cases cases/ --rom-out rom/
+# Deploy the sampling case structure + Slurm launcher scripts from a template case
+hprfe2 deploy
 
-# Submit the parametric study to Slurm and collect results
-hprfe2 run --cases cases/ --rom rom/ --backend slurm
+# (run the sampling jobs on the cluster with the generated Slurm array scripts)
 
-# Reconstruct full RVE fields at selected macro points
-hprfe2 reconstruct --results results.h5 --points points.csv
+# Build reduced bases, integration-point sets and reconstruction datasets
+hprfe2 generate
+
+# Generate single-integration-point multiscale validation cases
+hprfe2 validate
 ```
 
 See `docs/` for the full CLI reference, configuration schema, and a
@@ -105,13 +106,16 @@ worked example.
 
 ```
 hprfe2/
-├── cli.py            # Click-based CLI entry points
-├── cases/            # Case generation from parameter files
-├── train/            # Offline SVD / Block-SVD training
-├── orchestrate/      # HPC backends (local, Slurm), job state machine
-├── io/               # HDF5 result aggregation, metadata
-├── reconstruct/      # Field reconstruction from reduced bases
-└── tests/            # pytest test suite
+├── hprfe2            # docopt CLI entry point (config / deploy / generate / validate)
+├── common.py         # configuration, project paths, HDF5 resource I/O
+├── sampling.py       # deploy sampling cases + Slurm array launcher scripts
+├── bases.py          # reduced-basis construction via SVD (NumPy / scikit-learn)
+├── roc.py            # integration-point (cubature) selection for hyper-reduction
+├── pack.py           # pack bases / datasets into HDF5 for the solver
+├── reconstruction.py # full-field RVE reconstruction (displacement, stress, damage)
+└── multiscale.py     # single-IP multiscale validation cases
+tests/                # pytest suite
+docs/                 # Sphinx documentation
 ```
 
 ## Status
